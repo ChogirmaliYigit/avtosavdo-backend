@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "core",
     "users",
+    "shop",
 ]
 
 AUTH_USER_MODEL = "users.User"
@@ -147,6 +148,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = "staticfiles"
+
+MEDIA_ROOT = "media/"
+MEDIA_URL = "media/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

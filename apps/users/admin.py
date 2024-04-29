@@ -1,13 +1,14 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from users.models import CustomToken, User, Word
+from users.models import CustomToken, User, BlockedUser
 
 
 @admin.register(User)
 class UserAdmin(ModelAdmin):
     list_display = (
-        "username",
+        "phone_number",
         "full_name",
+        "username",
         "is_active",
         "is_staff",
     )
@@ -16,8 +17,12 @@ class UserAdmin(ModelAdmin):
         "is_staff",
     )
     fields = (
+        "phone_number",
         "full_name",
         "username",
+        "telegram_id",
+        "latitude",
+        "longitude",
         "is_active",
         "is_staff",
     )
@@ -25,23 +30,10 @@ class UserAdmin(ModelAdmin):
         "full_name",
         "username",
         "id",
+        "telegram_id",
+        "phone_number",
     )
 
-    list_filter_submit = True
-
-
-@admin.register(Word)
-class WordAdmin(ModelAdmin):
-    list_display = (
-        "front",
-        "back",
-        "pronunciation",
-        "user",
-        "is_favorite",
-    )
-    fields = list_display
-    search_fields = list_display + ("id",)
-    list_filter = ("is_favorite",)
     list_filter_submit = True
 
 
@@ -59,3 +51,37 @@ class CustomTokenAdmin(ModelAdmin):
         "expires_at",
     )
     search_fields = list_display
+
+
+@admin.register(BlockedUser)
+class BlockedUserAdmin(ModelAdmin):
+    list_display = (
+        "phone_number",
+        "full_name",
+        "username",
+        "is_active",
+        "is_staff",
+    )
+    list_filter = (
+        "is_active",
+        "is_staff",
+    )
+    fields = (
+        "phone_number",
+        "full_name",
+        "username",
+        "telegram_id",
+        "latitude",
+        "longitude",
+        "is_active",
+        "is_staff",
+    )
+    search_fields = (
+        "full_name",
+        "username",
+        "id",
+        "telegram_id",
+        "phone_number",
+    )
+
+    list_filter_submit = True

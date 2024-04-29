@@ -14,12 +14,17 @@ from apps.users.queryset.user import UserManager
 
 class User(BaseModel, AbstractBaseUser, PermissionsMixin):
     full_name = models.CharField(max_length=200, null=True, blank=True)
-    username = models.CharField(max_length=1000, unique=True)
+    username = models.CharField(max_length=1000, null=True, blank=True)
+    phone_number = models.CharField(max_length=100, unique=True)
+    telegram_id = models.BigIntegerField(unique=True)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
 
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
-    USERNAME_FIELD = "username"
+    USERNAME_FIELD = "phone_number"
+    REQUIRED_FIELDS = ["telegram_id", "latitude", "longitude"]
 
     objects = UserManager()
 
@@ -27,16 +32,9 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
         db_table = "users"
 
 
-class Word(BaseModel):
-    front = models.CharField(max_length=500)
-    back = models.CharField(max_length=500)
-    pronunciation = models.CharField(max_length=500)
-    is_favorite = models.BooleanField(default=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="words")
-
+class BlockedUser(User):
     class Meta:
-        db_table = "words"
-        unique_together = ("front", "back", "pronunciation", "user")
+        db_table = "blocked_users"
 
 
 def get_default_time():
