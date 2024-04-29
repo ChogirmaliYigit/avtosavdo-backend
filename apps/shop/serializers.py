@@ -1,7 +1,5 @@
-import decimal
-
 from rest_framework import serializers
-from shop.models import Category, Product, ProductImage, CartItem
+from shop.models import CartItem, Category, Product, ProductImage
 
 
 class CategoryListSerializer(serializers.ModelSerializer):
@@ -43,8 +41,12 @@ class ProductsListSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data["category"] = CategoryListSerializer(instance=instance.category, context=self.context).data
-        data["images"] = ProductImagesListSerializer(instance.images.all(), many=True, context=self.context).data
+        data["category"] = CategoryListSerializer(
+            instance=instance.category, context=self.context
+        ).data
+        data["images"] = ProductImagesListSerializer(
+            instance.images.all(), many=True, context=self.context
+        ).data
         return data
 
     def get_real_price(self, product):
@@ -69,7 +71,9 @@ class CartItemSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data["product"] = ProductsListSerializer(instance.product, context=self.context).data
+        data["product"] = ProductsListSerializer(
+            instance.product, context=self.context
+        ).data
         return data
 
     def get_total_price(self, cart_item):
@@ -113,6 +117,4 @@ class CartItemDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CartItem
-        fields = (
-            "count",
-        )
+        fields = ("count",)

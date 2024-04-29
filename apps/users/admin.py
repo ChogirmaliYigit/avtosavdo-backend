@@ -1,6 +1,6 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from users.models import CustomToken, User, BlockedUser
+from users.models import BlockedUser, CustomToken, User
 
 
 @admin.register(User)

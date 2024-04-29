@@ -1,7 +1,12 @@
-from rest_framework import views, generics, response, status
 from django.shortcuts import get_object_or_404
-from shop.models import Category, Product, CartItem
-from shop.serializers import CategoryListSerializer, ProductsListSerializer, CartItemSerializer, CartItemDetailSerializer
+from rest_framework import generics, response, status, views
+from shop.models import CartItem, Category, Product
+from shop.serializers import (
+    CartItemDetailSerializer,
+    CartItemSerializer,
+    CategoryListSerializer,
+    ProductsListSerializer,
+)
 
 
 class CategoryListView(generics.ListAPIView):
@@ -36,12 +41,16 @@ class CartItemRetrieveUpdateDestroyView(views.APIView):
 
     def get(self, request, product_id):
         cart_item = get_object_or_404(CartItem, product_id=product_id)
-        serializer = self.serializer_class(instance=cart_item, context={"request": request})
+        serializer = self.serializer_class(
+            instance=cart_item, context={"request": request}
+        )
         return response.Response(serializer.data, status.HTTP_200_OK)
 
     def put(self, request, product_id):
         cart_item = get_object_or_404(CartItem, product_id=product_id)
-        serializer = self.serializer_class(instance=cart_item, data=request.data, context={"request": request})
+        serializer = self.serializer_class(
+            instance=cart_item, data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return response.Response({}, status.HTTP_200_OK)
