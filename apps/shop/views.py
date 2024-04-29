@@ -1,10 +1,11 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, response, status, views
-from shop.models import CartItem, Category, Product
+from shop.models import CartItem, Category, Order, Product
 from shop.serializers import (
     CartItemDetailSerializer,
     CartItemSerializer,
     CategoryListSerializer,
+    OrderListSerializer,
     ProductsListSerializer,
 )
 
@@ -21,7 +22,7 @@ class CategoryListView(generics.ListAPIView):
 
 class ProductListView(generics.ListAPIView):
     serializer_class = ProductsListSerializer
-    queryset = Product.objects.filter(quantity__gt=0)
+    queryset = Product.objects.all()
 
 
 class CartItemListCreateView(generics.ListCreateAPIView):
@@ -59,3 +60,15 @@ class CartItemRetrieveUpdateDestroyView(views.APIView):
         cart_item = get_object_or_404(CartItem, product_id=product_id)
         cart_item.delete()
         return response.Response({}, status.HTTP_204_NO_CONTENT)
+
+
+class OrderListCreateView(generics.ListCreateAPIView):
+    serializer_class = OrderListSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
+
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user)

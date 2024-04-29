@@ -1,5 +1,5 @@
 from django.contrib import admin
-from shop.models import CartItem, Category, Product, ProductImage
+from shop.models import CartItem, Category, Order, OrderProduct, Product, ProductImage
 from unfold.admin import ModelAdmin
 
 
@@ -54,7 +54,7 @@ class CartItemAdmin(ModelAdmin):
         "user",
         "product",
         "count",
-        "total_price",
+        "price",
     )
     fields = (
         "user",
@@ -62,3 +62,35 @@ class CartItemAdmin(ModelAdmin):
         "count",
     )
     search_fields = fields + ("id",)
+
+
+@admin.register(Order)
+class OrderAdmin(ModelAdmin):
+    list_display = (
+        "user",
+        "total_price",
+        "status",
+        "paid",
+        "delivery_type",
+        "note",
+    )
+    fields = list_display
+    search_fields = list_display + ("id",)
+    list_filter = (
+        "paid",
+        "delivery_type",
+        "status",
+        "user",
+    )
+    list_filter_submit = True
+
+
+@admin.register(OrderProduct)
+class OrderProductAdmin(ModelAdmin):
+    list_display = (
+        "order",
+        "product",
+        "count",
+    )
+    fields = list_display
+    search_fields = list_display + ("id",)

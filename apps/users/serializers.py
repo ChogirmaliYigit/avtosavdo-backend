@@ -15,8 +15,6 @@ class UserSerializer(serializers.ModelSerializer):
             username=validated_data.get("username"),
             password=password,
             phone_number=validated_data.get("phone_number"),
-            latitude=validated_data.get("latitude"),
-            longitude=validated_data.get("longitude"),
             telegram_id=validated_data.get("telegram_id"),
             is_active=True,
             is_staff=False,
@@ -30,8 +28,6 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             "phone_number",
-            "latitude",
-            "longitude",
             "telegram_id",
             "username",
             "full_name",

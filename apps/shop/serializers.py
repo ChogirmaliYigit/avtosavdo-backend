@@ -1,5 +1,7 @@
-from rest_framework import serializers
-from shop.models import CartItem, Category, Product, ProductImage
+from django.db import transaction
+from django.db.models import ExpressionWrapper, F, FloatField, Sum
+from rest_framework import exceptions, serializers
+from shop.models import CartItem, Category, Order, OrderProduct, Product, ProductImage
 
 
 class CategoryListSerializer(serializers.ModelSerializer):
@@ -62,7 +64,6 @@ class ProductsListSerializer(serializers.ModelSerializer):
             "price",
             "discount_percentage",
             "real_price",
-            "quantity",
         )
 
 
@@ -77,7 +78,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         return data
 
     def get_total_price(self, cart_item):
-        return cart_item.total_price
+        return cart_item.price
 
     def create(self, validated_data):
         request = self.context.get("request")
@@ -118,3 +119,71 @@ class CartItemDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
         fields = ("count",)
+
+
+class OrderListSerializer(serializers.ModelSerializer):
+    total_price = serializers.DecimalField(
+        max_digits=12, decimal_places=2, required=False
+    )
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        cart_items = request.user.user_cart_items.all()
+        if cart_items:
+            total_price = (
+                cart_items.aggregate(
+                    total_price=Sum(
+                        ExpressionWrapper(
+                            F("product__price")
+                            - (
+                                F("product__price")
+                                * F("product__discount_percentage")
+                                / 100
+                            ),
+                            output_field=FloatField(),
+                        )
+                        * F("count")
+                    )
+                )["total_price"]
+                or 0
+            )
+            order_data = {
+                "user": request.user,
+                "total_price": total_price,
+                "status": Order.IN_PROCESSING,
+                "paid": False,
+                "delivery_type": validated_data.get("delivery_type", Order.PICKUP),
+                "note": validated_data.get("note", ""),
+            }
+
+            with transaction.atomic():
+                order = Order.objects.create(**order_data)
+                order_products = []
+                for cart_item in cart_items:
+                    order_products.append(
+                        OrderProduct(
+                            order=order,
+                            product=cart_item.product,
+                            count=cart_item.count,
+                        )
+                    )
+                OrderProduct.objects.bulk_create(order_products)
+
+                cart_items.delete()
+
+            return order
+        raise exceptions.ValidationError(
+            {
+                "detail": "Savatchangiz bo'sh. Buyurtma berish uchun oldin mahsulotlarni savatchangizga qo'shing!"
+            }
+        )
+
+    class Meta:
+        model = Order
+        fields = (
+            "total_price",
+            "status",
+            "paid",
+            "delivery_type",
+            "note",
+        )
