@@ -13,6 +13,8 @@ from shop.serializers import (
 class CategoryListView(generics.ListAPIView):
     serializer_class = CategoryListSerializer
     queryset = Category.objects.all()
+    authentication_classes = []
+    permission_classes = []
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -23,6 +25,8 @@ class CategoryListView(generics.ListAPIView):
 class ProductListView(generics.ListAPIView):
     serializer_class = ProductsListSerializer
     queryset = Product.objects.all()
+    authentication_classes = []
+    permission_classes = []
 
 
 class CartItemListCreateView(generics.ListCreateAPIView):
