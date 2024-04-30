@@ -7,7 +7,6 @@ from users.models import User
 class UserSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(required=True)
     telegram_id = serializers.IntegerField(required=True)
-    password = serializers.CharField(required=False)
     is_blocked = serializers.BooleanField(read_only=True)
     token = serializers.SerializerMethodField()
 
