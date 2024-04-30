@@ -5,13 +5,11 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.forms.models import model_to_dict
-from users.models import BlockedUser, User
+from users.models import User
 
 
 class Category(BaseModel):
     title = models.CharField(max_length=500, unique=True)
-    description = models.TextField(null=True, blank=True)
     image = models.ImageField(upload_to="categories/")
     parent = models.ForeignKey(
         "self",
@@ -30,7 +28,6 @@ class Category(BaseModel):
 
 class Product(BaseModel):
     title = models.CharField(max_length=1000)
-    description = models.TextField(null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     price = models.DecimalField(
         max_digits=12, decimal_places=2, validators=[MinValueValidator(0)]
@@ -143,7 +140,7 @@ class OrderProduct(BaseModel):
 def move_user_to_blocked(sender, instance=None, created=False, **kwargs):
     if not created and instance.user.orders.filter(status=Order.CANCELED).count() == 3:
         try:
-            BlockedUser.objects.create_user(model_to_dict(instance.user))
-            instance.user.delete()
+            instance.user.is_blocked = True
+            instance.save()
         except Exception as err:
-            print("Error while moving user to `BlockedUser` model:", err)
+            print("Error while making user `is_blocked`:", err)

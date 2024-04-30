@@ -14,25 +14,20 @@ from apps.users.queryset.user import UserManager
 
 class User(BaseModel, AbstractBaseUser, PermissionsMixin):
     full_name = models.CharField(max_length=200, null=True, blank=True)
-    username = models.CharField(max_length=1000, null=True, blank=True)
+    username = models.CharField(max_length=1000, unique=True)
     phone_number = models.CharField(max_length=100, unique=True)
     telegram_id = models.BigIntegerField(unique=True)
 
     is_staff = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
+    is_blocked = models.BooleanField(default=False)
 
-    USERNAME_FIELD = "phone_number"
-    REQUIRED_FIELDS = ["telegram_id"]
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = ["phone_number", "telegram_id"]
 
     objects = UserManager()
 
     class Meta:
         db_table = "users"
-
-
-class BlockedUser(User):
-    class Meta:
-        db_table = "blocked_users"
 
 
 class Address(BaseModel):

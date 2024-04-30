@@ -18,7 +18,6 @@ class CategoryListSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "title",
-            "description",
             "parent",
             "image",
         )
@@ -60,7 +59,6 @@ class ProductsListSerializer(serializers.ModelSerializer):
             "category",
             "id",
             "title",
-            "description",
             "price",
             "discount_percentage",
             "real_price",
@@ -181,6 +179,7 @@ class OrderListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = (
+            "id",
             "total_price",
             "status",
             "paid",

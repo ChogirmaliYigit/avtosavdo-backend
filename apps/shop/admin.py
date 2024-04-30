@@ -1,6 +1,6 @@
 from django.contrib import admin
 from shop.models import CartItem, Category, Order, OrderProduct, Product, ProductImage
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin, TabularInline
 
 
 @admin.register(Category)
@@ -8,7 +8,6 @@ class CategoryAdmin(ModelAdmin):
     list_display = (
         "title",
         "parent",
-        "description",
         "image",
     )
     fields = list_display
@@ -17,35 +16,30 @@ class CategoryAdmin(ModelAdmin):
     list_filter_submit = True
 
 
+class ProductImageInline(TabularInline):
+    model = ProductImage
+    fields = ("image",)
+    extra = 1
+
+
 @admin.register(Product)
 class ProductAdmin(ModelAdmin):
     list_display = (
         "title",
         "category",
-        "description",
         "real_price",
+        "discount_percentage",
     )
     fields = (
         "title",
         "category",
-        "description",
         "price",
-        "quantity",
         "discount_percentage",
     )
     search_fields = fields + ("id",)
     list_filter = ("category",)
     list_filter_submit = True
-
-
-@admin.register(ProductImage)
-class ProductImageAdmin(ModelAdmin):
-    list_display = (
-        "product",
-        "image",
-    )
-    fields = list_display
-    search_fields = list_display + ("id",)
+    inlines = [ProductImageInline]
 
 
 @admin.register(CartItem)
