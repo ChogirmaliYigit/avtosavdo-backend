@@ -8,6 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(required=True)
     telegram_id = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True)
+    is_blocked = serializers.BooleanField(read_only=True)
     token = serializers.SerializerMethodField()
 
     def validate_phone_number(self, value):
