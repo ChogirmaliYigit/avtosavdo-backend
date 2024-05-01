@@ -42,9 +42,7 @@ class ProductsListSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data["category"] = CategoryListSerializer(
-            instance=instance.category, context=self.context
-        ).data
+        data["category_id"] = instance.category.pk
         data["images"] = ProductImagesListSerializer(
             instance.images.all(), many=True, context=self.context
         ).data
@@ -56,7 +54,7 @@ class ProductsListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = (
-            "category",
+            "category_id",
             "id",
             "title",
             "price",
