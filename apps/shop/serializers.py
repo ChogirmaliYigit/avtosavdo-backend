@@ -1,3 +1,5 @@
+from core.telegram_client import TelegramClient
+from django.conf import settings
 from rest_framework import serializers
 from shop.models import CartItem, Category, Order, OrderProduct, Product, ProductImage
 
@@ -169,12 +171,56 @@ class OrderListSerializer(serializers.ModelSerializer):
         }
 
         order = Order.objects.create(**order_data)
+
+        product_names = []
+
         # Set the order attribute for each OrderProduct object
         for order_product in order_product_objects:
             order_product.order = order
+            product_names.append(
+                f"{order_product.product.title} ({order_product.count} ta)"
+            )
 
         # Bulk creates the OrderProduct objects
         OrderProduct.objects.bulk_create(order_product_objects)
+
+        telegram = TelegramClient(settings.BOT_TOKEN)
+        res = telegram.send(
+            "sendMessage",
+            data={
+                "chat_id": request.user.telegram_id,
+                "text": f"№{order.pk} raqamli buyurtmangiz qabul qilindi🥳\n\nTez orada siz bilan bog'lanamiz😊",
+            },
+        )
+
+        order_statuses = {
+            "in_processing": "Jarayonda",
+            "confirmed": "Tasdiqlangan",
+            "performing": "Amalga oshirilyabdi",
+            "success": "Bajarilgan",
+            "canceled": "Bekor qilingan",
+        }
+
+        payment_status = "To'langan✅" if order.paid else "To'lanmagan❌"
+
+        delivery_type = (
+            "Yetkazib berish" if order.delivery_type == "delivery" else "Olib ketish"
+        )
+
+        res = telegram.send(
+            "sendMessage",
+            data={
+                "chat_id": settings.GROUP_ID,
+                "text": f"<b>№{order.pk} raqamli buyurtma</b>\n\n"
+                f"📱Telefon raqam: <b>{request.user.phone_number}</b>\n"
+                f"📦Holati: {order_statuses.get(order.status)}\n"
+                f"💸To'lov holati: {payment_status}\n"
+                f"🚚Yetkazib berish turi: <b>{delivery_type}</b>"
+                f"📋Mahsulotlar: <b>{', '.join(product_names)}</b>\n\n"
+                f"<b>💸Umumiy narx: {order.total_price} so'm</b>",
+                "parse_mode": "html",
+            },
+        )
         return order
 
     class Meta:

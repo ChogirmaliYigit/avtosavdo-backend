@@ -36,6 +36,7 @@ DEBUG = env.bool("DEBUG", False)
 BOT_TOKEN = env.str("BOT_TOKEN")
 BACKEND_URL = env.str("BACKEND_URL")
 WEB_APP_URL = env.str("WEB_APP_URL")
+GROUP_ID = env.str("GROUP_ID")
 
 ALLOWED_HOSTS = env.str("ALLOWED_HOSTS", "").split(",")
 CSRF_TRUSTED_ORIGINS = env.str("CSRF_TRUSTED_ORIGINS", "").split(",")

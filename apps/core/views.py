@@ -9,12 +9,14 @@ def router(request_body, token):
     """Parse telegram request and route to handlers (controllers)"""
     data = json.loads(request_body)
     message = data.get("message", {})
-    if message.get("text") == "/start":
-        start(data, token)
-    elif message.get("contact", None) or message.get("text", None):
-        set_phone_number(data, token)
-    elif message.get("location"):
-        set_location(data, token)
+    chat = message.get("chat", {})
+    if chat.get("type", "") == "private":
+        if message.get("text") == "/start":
+            start(data, token)
+        elif message.get("contact", None) or message.get("text", None):
+            set_phone_number(data, token)
+        elif message.get("location"):
+            set_location(data, token)
 
 
 @csrf_exempt

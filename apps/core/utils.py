@@ -197,10 +197,11 @@ def set_location(data, token):
     )
 
     telegram.send(
-        "sendMessage",
+        "sendPhoto",
         data={
             "chat_id": chat_id,
-            "text": "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊",
+            "photo": "AgACAgIAAxkBAANUZjO0Qdehzrqu-TYasBZr5JA1kzQAAjbwMRuF0KBJgnHoI0d2oLkBAAMCAAN4AAM0BA",
+            "caption": "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊",
             "reply_markup": json.dumps(
                 {
                     "inline_keyboard": [

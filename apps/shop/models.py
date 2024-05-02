@@ -88,9 +88,6 @@ class Order(BaseModel):
     PERFORMING = "performing"
     SUCCESS = "success"
     CANCELED = "canceled"
-    PAYMENT_CANCELED = "payment_canceled"
-    DELETED = "deleted"
-    REFUNDED = "refunded"
 
     STATUSES = (
         (IN_PROCESSING, "Jarayonda"),
@@ -98,8 +95,6 @@ class Order(BaseModel):
         (PERFORMING, "Amalga oshirilyabdi"),
         (SUCCESS, "Bajarilgan"),
         (CANCELED, "Bekor qilingan"),
-        (PAYMENT_CANCELED, "To'lov bekor qilingan"),
-        (REFUNDED, "Qaytarilgan"),
     )
 
     PICKUP = "pickup"
