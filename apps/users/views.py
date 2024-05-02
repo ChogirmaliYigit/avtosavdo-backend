@@ -12,7 +12,6 @@ class UserLoginView(APIView):
     @utils.swagger_auto_schema(
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=["phone_number"],
             properties={
                 "phone_number": openapi.Schema(type=openapi.TYPE_STRING),
                 "telegram_id": openapi.Schema(type=openapi.TYPE_INTEGER),

@@ -1,5 +1,6 @@
 import re
 
+from django.db.models import Q
 from rest_framework import exceptions, serializers
 from users.models import Address, User
 
@@ -49,7 +50,11 @@ class UserSerializer(serializers.ModelSerializer):
             phone_number = f"+{phone_number}"
         data = super().to_representation(instance)
         data["addresses"] = AddressListSerializer(
-            Address.objects.filter(user__phone_number=phone_number), many=True
+            Address.objects.filter(
+                Q(user__phone_number=phone_number)
+                | Q(user__phone_number=phone_number[1:])
+            ),
+            many=True,
         ).data
         return data
 
