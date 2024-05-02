@@ -31,10 +31,19 @@ class UserManager(BaseUserManager, BaseManager):
         """
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("is_active", True)
+        extra_fields.setdefault("is_blocked", False)
 
         if extra_fields.get("is_staff") is not True:
             raise ValueError(_("Superuser must have is_staff=True."))
         if extra_fields.get("is_superuser") is not True:
             raise ValueError(_("Superuser must have is_superuser=True."))
         return self.create_user(phone_number, password, **extra_fields)
+
+    def filter(self, *args, **kwargs):
+        queryset = super().filter(*args, **kwargs)
+        phone_number = kwargs.get("phone_number", "")
+        if phone_number and not phone_number.startswith("+"):
+            queryset_ = queryset.filter(phone_number=f"+{phone_number}")
+            if not queryset_:
+                queryset = queryset.filter(phone_number=phone_number)
+        return queryset

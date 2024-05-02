@@ -33,6 +33,10 @@ SECRET_KEY = env.str("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", False)
 
+BOT_TOKEN = env.str("BOT_TOKEN")
+BACKEND_URL = env.str("BACKEND_URL")
+WEB_APP_URL = env.str("WEB_APP_URL")
+
 ALLOWED_HOSTS = env.str("ALLOWED_HOSTS", "").split(",")
 CSRF_TRUSTED_ORIGINS = env.str("CSRF_TRUSTED_ORIGINS", "").split(",")
 
@@ -172,8 +176,6 @@ REST_FRAMEWORK = {
     "NON_FIELD_ERRORS_KEY": "error",
     "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
 }
-
-DEFAULT_TOKEN_EXPIRE_DAYS = 30
 
 DRF_STANDARDIZED_ERRORS = {
     "EXCEPTION_HANDLER_CLASS": "drf_standardized_errors.handler.ExceptionHandler",

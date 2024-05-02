@@ -1,15 +1,9 @@
 from drf_yasg import openapi, utils
-from rest_framework import exceptions, generics, permissions, status
+from rest_framework import exceptions, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from users.models import User
 from users.serializers import UserSerializer
-
-
-class UserRegistrationView(generics.CreateAPIView):
-    serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny]
-    authentication_classes = []
 
 
 class UserLoginView(APIView):
@@ -18,7 +12,7 @@ class UserLoginView(APIView):
     @utils.swagger_auto_schema(
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=["phone_number", "telegram_id"],
+            required=["phone_number"],
             properties={
                 "phone_number": openapi.Schema(type=openapi.TYPE_STRING),
                 "telegram_id": openapi.Schema(type=openapi.TYPE_INTEGER),
@@ -27,7 +21,7 @@ class UserLoginView(APIView):
         responses={
             status.HTTP_200_OK: UserSerializer,
             status.HTTP_400_BAD_REQUEST: "Invalid input",
-            status.HTTP_401_UNAUTHORIZED: "Invalid phone number or password",
+            status.HTTP_401_UNAUTHORIZED: "Invalid phone number",
         },
     )
     def post(self, request):
@@ -38,14 +32,42 @@ class UserLoginView(APIView):
                 }
             )
 
-        phone_number = request.data.get("phone_number")
         telegram_id = request.data.get("telegram_id")
+        if telegram_id:
+            user = User.objects.filter(telegram_id=telegram_id).first()
+            if user:
+                return Response(
+                    UserSerializer(
+                        instance=user, context={"phone_number": user.phone_number}
+                    ).data,
+                    status=status.HTTP_200_OK,
+                )
 
-        user = User.objects.filter(
-            phone_number=phone_number, telegram_id=telegram_id
-        ).first()
+        phone_number = request.data.get("phone_number")
+        if not phone_number:
+            phone_number = request.headers.get("Authorization", "")
+        if not phone_number:
+            raise exceptions.ValidationError(
+                {"phone_number": "Telefon raqam to'ldirilishi shart"}
+            )
+
+        user = User.objects.filter(phone_number=phone_number).first()
         if not user:
-            raise exceptions.ValidationError("Phone number or telegram_id is invalid")
+            serializer = UserSerializer(
+                data=request.data, context={"phone_number": phone_number}
+            )
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+
+        elif user.is_blocked:
+            raise exceptions.ValidationError(
+                {
+                    "detail": "Bekor qilingan buyurtmalaringiz 3 ta bo'lganligi uchun siz admin tomonidan bloklangansiz va botdan foydalana olmaysiz."
+                }
+            )
 
         # Return the user data if authentication is successful
-        return Response(UserSerializer(instance=user).data, status=status.HTTP_200_OK)
+        return Response(
+            UserSerializer(instance=user, context={"phone_number": phone_number}).data,
+            status=status.HTTP_200_OK,
+        )

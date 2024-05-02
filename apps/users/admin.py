@@ -1,6 +1,6 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from users.models import Address, CustomToken, User
+from users.models import Address, User
 
 
 @admin.register(User)
@@ -31,22 +31,6 @@ class UserAdmin(ModelAdmin):
     )
 
     list_filter_submit = True
-
-
-@admin.register(CustomToken)
-class CustomTokenAdmin(ModelAdmin):
-    list_display = (
-        "key",
-        "user",
-        "created",
-        "expires_at",
-    )
-    fields = (
-        "key",
-        "user",
-        "expires_at",
-    )
-    search_fields = list_display
 
 
 @admin.register(Address)

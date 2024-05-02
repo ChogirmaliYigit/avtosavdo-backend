@@ -1,11 +1,10 @@
-from django.utils import timezone
-from rest_framework import exceptions
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.exceptions import AuthenticationFailed
-from users.models import CustomToken
+import json
+
+from rest_framework import authentication, exceptions
+from users.models import User
 
 
-class CustomTokenAuthentication(TokenAuthentication):
+class CustomTokenAuthentication(authentication.BaseAuthentication):
     # List of endpoints that do not require authentication
     allowed_endpoints = [
         "/swagger/",
@@ -18,30 +17,23 @@ class CustomTokenAuthentication(TokenAuthentication):
         ):
             return None  # No authentication required
 
-        try:
-            key = request.headers.get("Authorization", "").split()[-1]
-            token = CustomToken.objects.filter(key=key).first()
-        except IndexError:
-            token = None
+        phone_number = request.headers.get("Authorization", "")
+        user = User.objects.filter(phone_number=phone_number).first()
 
-        if not token:
-            if request.path.startswith("/api/v1/users/sign-in"):
-                return None  # Proceed with sign-in
-            raise AuthenticationFailed("Token not provided")
-        elif token and token.expires_at < timezone.now():
-            raise AuthenticationFailed("Token expired")
-        elif token and request.path.startswith("/api/v1/users/sign-in"):
-            raise exceptions.ValidationError(
-                {
-                    "detail": "Siz allaqachon tizimga kirgansiz! Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊"
-                }
-            )
+        if request.path.startswith("/api/v1/users/auth"):
+            return None  # Proceed with sign-in
 
-        if token.user.is_blocked:
+        if not user:
+            data = json.loads(request.body.decode("utf-8"))
+            if data.get("telegram_id"):
+                return None
+            raise exceptions.AuthenticationFailed("phone_number not provided")
+
+        elif user.is_blocked:
             raise exceptions.ValidationError(
                 {
                     "detail": "Bekor qilingan buyurtmalaringiz 3 ta bo'lganligi uchun siz admin tomonidan bloklangansiz va botdan foydalana olmaysiz."
                 }
             )
 
-        return token.user, token
+        return user
