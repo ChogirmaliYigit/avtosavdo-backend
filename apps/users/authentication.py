@@ -36,4 +36,4 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
                 }
             )
 
-        return user
+        return user, "1"

@@ -1,6 +1,4 @@
-from django.db import transaction
-from django.db.models import ExpressionWrapper, F, FloatField, Sum
-from rest_framework import exceptions, serializers
+from rest_framework import serializers
 from shop.models import CartItem, Category, Order, OrderProduct, Product, ProductImage
 
 
@@ -122,57 +120,62 @@ class OrderListSerializer(serializers.ModelSerializer):
         max_digits=12, decimal_places=2, required=False
     )
 
+    def validate(self, data):
+        orders = self.context.get("orders", [])
+        if not orders:
+            raise serializers.ValidationError({"orders": "This field is required."})
+        return data
+
     def create(self, validated_data):
         request = self.context.get("request")
-        cart_items = request.user.user_cart_items.all()
-        if cart_items:
-            total_price = (
-                cart_items.aggregate(
-                    total_price=Sum(
-                        ExpressionWrapper(
-                            F("product__price")
-                            - (
-                                F("product__price")
-                                * F("product__discount_percentage")
-                                / 100
-                            ),
-                            output_field=FloatField(),
-                        )
-                        * F("count")
-                    )
-                )["total_price"]
-                or 0
+        orders = self.context.get("orders")
+
+        total_price = 0
+        product_ids = {item["product"] for item in orders}
+        products = Product.objects.filter(id__in=product_ids)
+        price_mapping = {product.id: product.real_price for product in products}
+
+        order_product_objects = []
+        for item in orders:
+            product_id = item["product"]
+            count = item["count"]
+
+            if product_id in price_mapping:
+                total_price += price_mapping[product_id] * count
+            else:
+                print(f"Price for product {product_id} not found.")
+
+            order_product_objects.append(
+                OrderProduct(
+                    product_id=product_id,
+                    count=count,
+                    order=None,
+                )
             )
-            order_data = {
-                "user": request.user,
-                "total_price": total_price,
-                "status": Order.IN_PROCESSING,
-                "paid": False,
-                "delivery_type": validated_data.get("delivery_type", Order.PICKUP),
-                "note": validated_data.get("note", ""),
-            }
 
-            with transaction.atomic():
-                order = Order.objects.create(**order_data)
-                order_products = []
-                for cart_item in cart_items:
-                    order_products.append(
-                        OrderProduct(
-                            order=order,
-                            product=cart_item.product,
-                            count=cart_item.count,
-                        )
-                    )
-                OrderProduct.objects.bulk_create(order_products)
+        if validated_data.get("full_name"):
+            request.user.full_name = validated_data.get("full_name")
+            request.user.save()
 
-                cart_items.delete()
+        order_data = {
+            "user": request.user,
+            "total_price": total_price,
+            "status": Order.IN_PROCESSING,
+            "paid": False,
+            "delivery_type": validated_data.get("delivery_type", Order.PICKUP),
+            "note": validated_data.get("note", ""),
+            "secondary_phone_number": validated_data.get("secondary_phone_number"),
+            "address": validated_data.get("address"),
+        }
 
-            return order
-        raise exceptions.ValidationError(
-            {
-                "detail": "Savatchangiz bo'sh. Buyurtma berish uchun oldin mahsulotlarni savatchangizga qo'shing!"
-            }
-        )
+        order = Order.objects.create(**order_data)
+        # Set the order attribute for each OrderProduct object
+        for order_product in order_product_objects:
+            order_product.order = order
+
+        # Bulk creates the OrderProduct objects
+        OrderProduct.objects.bulk_create(order_product_objects)
+        return order
 
     class Meta:
         model = Order
@@ -183,4 +186,6 @@ class OrderListSerializer(serializers.ModelSerializer):
             "paid",
             "delivery_type",
             "note",
+            "secondary_phone_number",
+            "address",
         )

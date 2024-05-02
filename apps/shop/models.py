@@ -5,7 +5,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from users.models import User
+from users.models import Address, User
 
 
 class Category(BaseModel):
@@ -33,7 +33,8 @@ class Product(BaseModel):
         max_digits=12, decimal_places=2, validators=[MinValueValidator(0)]
     )
     discount_percentage = models.FloatField(
-        validators=[MinValueValidator(0.00), MaxValueValidator(100)]
+        validators=[MinValueValidator(0.00), MaxValueValidator(100)],
+        default=0.00,
     )
 
     def __str__(self):
@@ -117,6 +118,8 @@ class Order(BaseModel):
     paid = models.BooleanField(default=False)
     note = models.CharField(max_length=255, null=True, blank=True)
     delivery_type = models.CharField(max_length=20, choices=DELIVERY_TYPES)
+    secondary_phone_number = models.CharField(max_length=100, null=True, blank=True)
+    address = models.ForeignKey(Address, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.user.full_name or self.user.phone_number} ({self.pk})"
