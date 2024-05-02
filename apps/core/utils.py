@@ -65,14 +65,25 @@ def start(data, token):
                 }
             )
 
-    telegram.send(
-        "sendMessage",
-        data={
-            "chat_id": chat_id,
-            "text": text,
-            "reply_markup": reply_markup,
-        },
-    )
+    if text == "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊":
+        telegram.send(
+            "sendPhoto",
+            data={
+                "chat_id": chat_id,
+                "photo": "AgACAgIAAxkBAANUZjO0Qdehzrqu-TYasBZr5JA1kzQAAjbwMRuF0KBJgnHoI0d2oLkBAAMCAAN4AAM0BA",
+                "caption": text,
+                "reply_markup": reply_markup,
+            },
+        )
+    else:
+        telegram.send(
+            "sendMessage",
+            data={
+                "chat_id": chat_id,
+                "text": text,
+                "reply_markup": reply_markup,
+            },
+        )
 
 
 def set_phone_number(data, token):
