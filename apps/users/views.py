@@ -35,6 +35,12 @@ class UserLoginView(APIView):
         if telegram_id:
             user = User.objects.filter(telegram_id=telegram_id).first()
             if user:
+                if not user.addresses.all():
+                    return exceptions.ValidationError(
+                        {
+                            "detail": "Buyurtma berish uchun botga kirib lokatsiyangizni yuboring!"
+                        }
+                    )
                 return Response(
                     UserSerializer(
                         instance=user, context={"phone_number": user.phone_number}
