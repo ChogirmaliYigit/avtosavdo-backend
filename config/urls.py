@@ -39,7 +39,6 @@ schema_view = get_schema_view(
 
 
 urlpatterns = [
-    path("/", admin.site.urls),
     path(
         "api/v1/",
         include(
@@ -55,6 +54,7 @@ urlpatterns = [
         name="swagger-ui",
     ),
     path("core/", include(("core.urls", "telegram"), namespace="telegram")),
+    path("", admin.site.urls),
 ]
 
 if settings.DEBUG:
