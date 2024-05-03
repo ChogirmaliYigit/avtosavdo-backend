@@ -66,15 +66,7 @@ def start(data, token):
             )
 
     if text == "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊":
-        telegram.send(
-            "sendPhoto",
-            data={
-                "chat_id": chat_id,
-                "photo": "AgACAgIAAxkBAANUZjO0Qdehzrqu-TYasBZr5JA1kzQAAjbwMRuF0KBJgnHoI0d2oLkBAAMCAAN4AAM0BA",
-                "caption": text,
-                "reply_markup": reply_markup,
-            },
-        )
+        send_success_message(telegram, chat_id)
     else:
         telegram.send(
             "sendMessage",
@@ -196,28 +188,55 @@ def set_location(data, token):
         },
     )
 
-    telegram.send(
-        "sendPhoto",
-        data={
-            "chat_id": chat_id,
-            "photo": "AgACAgIAAxkBAANUZjO0Qdehzrqu-TYasBZr5JA1kzQAAjbwMRuF0KBJgnHoI0d2oLkBAAMCAAN4AAM0BA",
-            "caption": "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊",
-            "reply_markup": json.dumps(
-                {
-                    "inline_keyboard": [
-                        [
-                            {
-                                "text": "Menu",
-                                "web_app": {
-                                    "url": settings.WEB_APP_URL,
-                                },
-                            }
-                        ]
-                    ]
-                }
-            ),
-        },
+    send_success_message(telegram, chat_id)
+
+
+def send_success_message(telegram: TelegramClient, chat_id):
+    reply_markup = json.dumps(
+        {
+            "inline_keyboard": [
+                [
+                    {
+                        "text": "Menu",
+                        "web_app": {
+                            "url": settings.WEB_APP_URL,
+                        },
+                    }
+                ]
+            ]
+        }
     )
+
+    data = {
+        "chat_id": chat_id,
+        "reply_markup": reply_markup,
+    }
+    if settings.IMAGE_FILE_ID:
+        data["photo"] = settings.IMAGE_FILE_ID
+        data["caption"] = "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊"
+        method = "sendPhoto"
+    else:
+        method = "sendMessage"
+        data["text"] = "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊"
+
+    res = telegram.send(
+        method,
+        data=data,
+    )
+
+    if (
+        not res.get("ok")
+        and res.get("description")
+        == "Bad Request: wrong file identifier/HTTP URL specified"
+    ):
+        telegram.send(
+            "sendMessage",
+            data={
+                "chat_id": chat_id,
+                "text": "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊",
+                "reply_markup": reply_markup,
+            },
+        )
 
 
 def get_address_by_location(latitude, longitude):

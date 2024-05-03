@@ -1,8 +1,7 @@
 import json
 
 from core.utils import set_location, set_phone_number, start
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework import permissions, response, views
 
 
 def router(request_body, token):
@@ -19,12 +18,15 @@ def router(request_body, token):
             set_location(data, token)
 
 
-@csrf_exempt
-def webhook(request, bot_token):
-    """Run router and return success response"""
-    try:
-        router(request.body.decode("utf-8"), bot_token)
-    except Exception as error:
-        print(error)
+class TelegramWebhookView(views.APIView):
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
 
-    return JsonResponse({"ok": True})
+    def post(self, request, bot_token):
+        """Run router and return success response"""
+        try:
+            router(request.body.decode("utf-8"), bot_token)
+        except Exception as error:
+            print(error)
+
+        return response.Response({"ok": True})
