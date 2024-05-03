@@ -24,7 +24,10 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
             return None  # Proceed with sign-in
 
         if not user:
-            data = json.loads(request.body.decode("utf-8"))
+            try:
+                data = json.loads(request.body.decode("utf-8"))
+            except json.decoder.JSONDecodeError:
+                data = {}
             if data.get("telegram_id"):
                 return None
             raise exceptions.AuthenticationFailed("phone_number not provided")
