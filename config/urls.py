@@ -24,9 +24,9 @@ from rest_framework import permissions
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="Qo'shko'pir Avtosavdo API",
+        title="Qasr Restaurant API",
         default_version="v1",
-        description="Qo'shko'pir Avtosavdo API description",
+        description="Qasr Restaurant API description",
         terms_of_service="https://www.google.com/policies/terms/",
         contact=openapi.Contact(email="chogirmali.yigit@gmail.com"),
         license=openapi.License(name="MIT License"),
