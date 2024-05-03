@@ -10,7 +10,6 @@ from users.models import Address, User
 
 class Category(BaseModel):
     title = models.CharField(max_length=500, unique=True)
-    image = models.ImageField(upload_to="categories/")
     parent = models.ForeignKey(
         "self",
         on_delete=models.CASCADE,

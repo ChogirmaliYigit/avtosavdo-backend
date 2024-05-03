@@ -5,21 +5,12 @@ from shop.models import CartItem, Category, Order, OrderProduct, Product, Produc
 
 
 class CategoryListSerializer(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
-
-    def get_image(self, category):
-        request = self.context.get("request")
-        if category.image and request:
-            return request.build_absolute_uri(category.image.url)
-        return None
-
     class Meta:
         model = Category
         fields = (
             "id",
             "title",
             "parent",
-            "image",
         )
 
 

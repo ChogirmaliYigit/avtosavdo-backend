@@ -8,7 +8,6 @@ class CategoryAdmin(ModelAdmin):
     list_display = (
         "title",
         "parent",
-        "image",
     )
     fields = list_display
     search_fields = list_display + ("id",)
