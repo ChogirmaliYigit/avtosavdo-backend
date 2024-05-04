@@ -5,11 +5,7 @@ from unfold.admin import ModelAdmin, TabularInline
 
 class ProductInline(TabularInline):
     model = Product
-    fields = (
-        "title",
-        "price",
-        "discount_percentage",
-    )
+    fields = ("title", "price", "discount_percentage", "image")
     extra = 1
 
 
