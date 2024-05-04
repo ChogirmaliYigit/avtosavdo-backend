@@ -29,6 +29,11 @@ class ProductListView(generics.ListAPIView):
     authentication_classes = []
     permission_classes = []
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
+
 
 class CartItemListCreateView(generics.ListCreateAPIView):
     serializer_class = CartItemSerializer
