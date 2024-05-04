@@ -140,11 +140,13 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "uz-Cyrl"
 
 TIME_ZONE = "Asia/Tashkent"
 
 USE_I18N = True
+
+USE_I10N = True
 
 USE_TZ = True
 
@@ -206,3 +208,5 @@ SWAGGER_SETTINGS = {
         "Token": {"type": "apiKey", "name": "Authorization", "in": "header"},
     },
 }
+
+LOCALE_PATHS = [BASE_DIR + "apps/locale"]

@@ -1,7 +1,7 @@
 from core.telegram_client import TelegramClient
 from django.conf import settings
 from rest_framework import serializers
-from shop.models import CartItem, Category, Order, OrderProduct, Product, ProductImage
+from shop.models import CartItem, Category, Order, OrderProduct, Product
 
 
 class CategoryListSerializer(serializers.ModelSerializer):
@@ -14,30 +14,21 @@ class CategoryListSerializer(serializers.ModelSerializer):
         )
 
 
-class ProductImagesListSerializer(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
-
-    def get_image(self, product_image):
-        request = self.context.get("request")
-        if product_image.image and request:
-            return request.build_absolute_uri(product_image.image.url)
-        return None
-
-    class Meta:
-        model = ProductImage
-        fields = ("image",)
-
-
 class ProductsListSerializer(serializers.ModelSerializer):
     real_price = serializers.SerializerMethodField()
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["category_id"] = instance.category.pk
-        data["images"] = ProductImagesListSerializer(
-            instance.images.all(), many=True, context=self.context
-        ).data
+        data["image"] = self.get_product_image(instance)
         return data
+
+    def get_product_image(self, instance):
+        request = self.context.get("request")
+        product_image = instance.images.first()
+        if product_image.image and request:
+            return request.build_absolute_uri(product_image.image.url)
+        return None
 
     def get_real_price(self, product):
         return product.real_price

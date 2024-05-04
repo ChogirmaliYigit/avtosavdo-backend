@@ -17,11 +17,11 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
         ):
             return None  # No authentication required
 
-        phone_number = request.headers.get("Authorization", "")
-        user = User.objects.filter(phone_number=phone_number).first()
-
         if request.path.startswith("/api/v1/users/auth"):
             return None  # Proceed with sign-in
+
+        phone_number = request.headers.get("Authorization", "")
+        user = User.objects.filter(phone_number=phone_number).first()
 
         if not user:
             try:
@@ -35,7 +35,7 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
         elif user.is_blocked:
             raise exceptions.ValidationError(
                 {
-                    "detail": "Bekor qilingan buyurtmalaringiz 3 ta bo'lganligi uchun siz admin tomonidan bloklangansiz va botdan foydalana olmaysiz."
+                    "detail": "Bekor qilingan buyurtmalaringiz 3 ta bo'lganligi uchun siz admin tomonidan bloklangansiz va hozircha botdan foydalana olmaysiz."
                 }
             )
 
