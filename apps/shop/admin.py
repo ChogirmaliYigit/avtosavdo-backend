@@ -1,9 +1,9 @@
 from django.contrib import admin
 from shop.models import Category, Order, OrderProduct, Product
-from unfold.admin import ModelAdmin, TabularInline
+from unfold.admin import ModelAdmin, StackedInline
 
 
-class ProductInline(TabularInline):
+class ProductInline(StackedInline):
     model = Product
     fields = ("title", "price", "discount_percentage", "image")
     extra = 1
@@ -17,7 +17,7 @@ class CategoryAdmin(ModelAdmin):
     inlines = [ProductInline]
 
 
-class OrderProductInline(TabularInline):
+class OrderProductInline(StackedInline):
     model = OrderProduct
     fields = (
         "product",
