@@ -140,16 +140,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = "uz-Cyrl"
+LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "Asia/Tashkent"
 
 USE_I18N = True
 
-USE_I10N = True
+USE_L10N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
@@ -208,5 +207,3 @@ SWAGGER_SETTINGS = {
         "Token": {"type": "apiKey", "name": "Authorization", "in": "header"},
     },
 }
-
-LOCALE_PATHS = [BASE_DIR + "apps/locale"]

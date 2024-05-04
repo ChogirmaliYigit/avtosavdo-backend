@@ -9,32 +9,34 @@ from users.models import Address, User
 
 
 class Category(BaseModel):
-    title = models.CharField(max_length=500, unique=True)
-    parent = models.ForeignKey(
-        "self",
-        on_delete=models.CASCADE,
-        related_name="sub_categories",
-        null=True,
-        blank=True,
-    )
+    title = models.CharField(verbose_name="Номи", max_length=500, unique=True)
 
     def __str__(self):
         return self.title
 
     class Meta:
         db_table = "categories"
+        verbose_name = "Категория"
+        verbose_name_plural = "Категориялар"
 
 
 class Product(BaseModel):
-    title = models.CharField(max_length=1000)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    title = models.CharField(verbose_name="Номи", max_length=1000)
+    category = models.ForeignKey(
+        verbose_name="Категория", to=Category, on_delete=models.CASCADE
+    )
     price = models.DecimalField(
-        max_digits=12, decimal_places=2, validators=[MinValueValidator(0)]
+        verbose_name="Нархи",
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
     )
     discount_percentage = models.FloatField(
+        verbose_name="Чегирма фоизи",
         validators=[MinValueValidator(0.00), MaxValueValidator(100)],
         default=0.00,
     )
+    image = models.ImageField(verbose_name="Расм", upload_to="products/")
 
     def __str__(self):
         return self.title
@@ -49,36 +51,8 @@ class Product(BaseModel):
     class Meta:
         db_table = "products"
         unique_together = ("category", "title")
-
-
-class ProductImage(BaseModel):
-    image = models.ImageField(upload_to="products/")
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, related_name="images"
-    )
-
-    def __str__(self):
-        return f"{self.product.title} ({self.pk})"
-
-    class Meta:
-        db_table = "product_images"
-
-
-class CartItem(BaseModel):
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="user_cart_items"
-    )
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, related_name="on_cart"
-    )
-    count = models.PositiveIntegerField(validators=[MinValueValidator(1)])
-
-    @property
-    def price(self):
-        return decimal.Decimal(self.count) * self.product.real_price
-
-    class Meta:
-        db_table = "cart_items"
+        verbose_name = "Маҳсулот"
+        verbose_name_plural = "Маҳсулотлар"
 
 
 class Order(BaseModel):
@@ -89,52 +63,85 @@ class Order(BaseModel):
     CANCELED = "canceled"
 
     STATUSES = (
-        (IN_PROCESSING, "Jarayonda"),
-        (CONFIRMED, "Tasdiqlangan"),
-        (PERFORMING, "Amalga oshirilyabdi"),
-        (SUCCESS, "Bajarilgan"),
-        (CANCELED, "Bekor qilingan"),
+        (IN_PROCESSING, "Жараёнда"),
+        (CONFIRMED, "Тасдиқланган"),
+        (PERFORMING, "Амалга оширилябди"),
+        (SUCCESS, "Бажарилган"),
+        (CANCELED, "Бекор қилинган"),
     )
 
     PICKUP = "pickup"
     DELIVERY = "delivery"
 
     DELIVERY_TYPES = (
-        (PICKUP, "Olib ketish"),
-        (DELIVERY, "Yetkazib berish"),
+        (PICKUP, "Олиб кетиш"),
+        (DELIVERY, "Етказиб бериш"),
     )
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
-    total_price = models.DecimalField(
-        max_digits=15, decimal_places=2, validators=[MinValueValidator(0)]
+    user = models.ForeignKey(
+        verbose_name="Мижоз", to=User, on_delete=models.CASCADE, related_name="orders"
     )
-    status = models.CharField(max_length=255, choices=STATUSES, default=IN_PROCESSING)
-    paid = models.BooleanField(default=False)
-    note = models.CharField(max_length=255, null=True, blank=True)
-    delivery_type = models.CharField(max_length=20, choices=DELIVERY_TYPES)
-    secondary_phone_number = models.CharField(max_length=100, null=True, blank=True)
-    address = models.ForeignKey(Address, on_delete=models.CASCADE)
+    total_price = models.DecimalField(
+        verbose_name="Умумий нархи",
+        max_digits=15,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
+    status = models.CharField(
+        verbose_name="Статус", max_length=255, choices=STATUSES, default=IN_PROCESSING
+    )
+    paid = models.BooleanField(verbose_name="Тўлов статуси", default=False)
+    delivery_type = models.CharField(
+        verbose_name="Етказиб бериш тури",
+        max_length=20,
+        choices=DELIVERY_TYPES,
+        default=DELIVERY,
+    )
+    secondary_phone_number = models.CharField(
+        verbose_name="Қўшимча телефон номер", max_length=100, null=True, blank=True
+    )
+    address = models.ForeignKey(
+        verbose_name="Манзил", to=Address, on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return f"{self.user.full_name or self.user.phone_number} ({self.pk})"
 
+    @property
+    def address_text(self):
+        return self.address.address
+
     class Meta:
         db_table = "orders"
+        verbose_name = "Буюртма"
+        verbose_name_plural = "Буюртмалар"
 
 
 class OrderProduct(BaseModel):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="products")
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, related_name="orders"
+    order = models.ForeignKey(
+        verbose_name="Буюртма",
+        to=Order,
+        on_delete=models.CASCADE,
+        related_name="products",
     )
-    count = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    product = models.ForeignKey(
+        verbose_name="Маҳсулот",
+        to=Product,
+        on_delete=models.CASCADE,
+        related_name="orders",
+    )
+    count = models.PositiveIntegerField(
+        verbose_name="Сони", validators=[MinValueValidator(1)]
+    )
 
     class Meta:
         db_table = "order_products"
+        verbose_name = "Буюртма маҳсулоти"
+        verbose_name_plural = "Буюртма маҳсулотлари"
 
 
 @receiver(post_save, sender=Order)
-def move_user_to_blocked(sender, instance=None, created=False, **kwargs):
+def block_user(sender, instance=None, created=False, **kwargs):
     if not created and instance.user.orders.filter(status=Order.CANCELED).count() == 3:
         try:
             instance.user.is_blocked = True

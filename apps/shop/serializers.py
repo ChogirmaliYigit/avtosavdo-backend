@@ -1,7 +1,7 @@
 from core.telegram_client import TelegramClient
 from django.conf import settings
 from rest_framework import serializers
-from shop.models import CartItem, Category, Order, OrderProduct, Product
+from shop.models import Category, Order, OrderProduct, Product
 
 
 class CategoryListSerializer(serializers.ModelSerializer):
@@ -10,7 +10,6 @@ class CategoryListSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "title",
-            "parent",
         )
 
 
@@ -25,9 +24,8 @@ class ProductsListSerializer(serializers.ModelSerializer):
 
     def get_product_image(self, instance):
         request = self.context.get("request")
-        product_image = instance.images.first()
-        if product_image.image and request:
-            return request.build_absolute_uri(product_image.image.url)
+        if instance.image and request:
+            return request.build_absolute_uri(instance.image.url)
         return None
 
     def get_real_price(self, product):
@@ -42,61 +40,8 @@ class ProductsListSerializer(serializers.ModelSerializer):
             "price",
             "discount_percentage",
             "real_price",
+            "image",
         )
-
-
-class CartItemSerializer(serializers.ModelSerializer):
-    total_price = serializers.SerializerMethodField()
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data["product"] = ProductsListSerializer(
-            instance.product, context=self.context
-        ).data
-        return data
-
-    def get_total_price(self, cart_item):
-        return cart_item.price
-
-    def create(self, validated_data):
-        request = self.context.get("request")
-        cart_item = CartItem.objects.filter(
-            user=request.user,
-            product=validated_data.get("product"),
-        ).first()
-        if cart_item:
-            cart_item.count += validated_data.get("count")
-            cart_item.save()
-        else:
-            cart_item = CartItem.objects.create(
-                user=request.user,
-                product=validated_data.get("product"),
-                count=validated_data.get("count"),
-            )
-        return cart_item
-
-    class Meta:
-        model = CartItem
-        fields = (
-            "product",
-            "count",
-            "total_price",
-        )
-
-
-class CartItemDetailSerializer(serializers.ModelSerializer):
-    count = serializers.IntegerField(required=False)
-
-    def update(self, instance, validated_data):
-        count = validated_data.get("count", 0)
-        if count > 0:
-            instance.count += count
-            instance.save()
-        return instance
-
-    class Meta:
-        model = CartItem
-        fields = ("count",)
 
 
 class OrderListSerializer(serializers.ModelSerializer):
@@ -146,7 +91,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             "total_price": total_price,
             "status": Order.IN_PROCESSING,
             "paid": False,
-            "delivery_type": validated_data.get("delivery_type", Order.PICKUP),
+            "delivery_type": validated_data.get("delivery_type", Order.DELIVERY),
             "note": validated_data.get("note", ""),
             "secondary_phone_number": validated_data.get("secondary_phone_number"),
             "address": validated_data.get("address"),
@@ -167,7 +112,7 @@ class OrderListSerializer(serializers.ModelSerializer):
         OrderProduct.objects.bulk_create(order_product_objects)
 
         telegram = TelegramClient(settings.BOT_TOKEN)
-        res = telegram.send(
+        telegram.send(
             "sendMessage",
             data={
                 "chat_id": request.user.telegram_id,
@@ -189,7 +134,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             "Yetkazib berish" if order.delivery_type == "delivery" else "Olib ketish"
         )
 
-        res = telegram.send(
+        telegram.send(
             "sendMessage",
             data={
                 "chat_id": settings.GROUP_ID,
@@ -197,10 +142,12 @@ class OrderListSerializer(serializers.ModelSerializer):
                 f"📱Telefon raqam: <b>{request.user.phone_number}</b>\n"
                 f"📦Holati: {order_statuses.get(order.status)}\n"
                 f"💸To'lov holati: {payment_status}\n"
-                f"🚚Yetkazib berish turi: <b>{delivery_type}</b>"
+                f"🚚Yetkazib berish turi: <b>{delivery_type}</b>\n"
+                f"📍Yetkazib berish manzili: <a href='https://www.google.com/maps/@{order.address.latitude},{order.address.longitude},18.5z?entry=ttu'><b>{order.address.address}</b></a>\n"
                 f"📋Mahsulotlar: <b>{', '.join(product_names)}</b>\n\n"
                 f"<b>💸Umumiy narx: {order.total_price} so'm</b>",
                 "parse_mode": "html",
+                "disable_web_page_preview": True,
             },
         )
         return order
