@@ -2,6 +2,7 @@ from core.telegram_client import TelegramClient
 from django.conf import settings
 from rest_framework import serializers
 from shop.models import Category, Order, OrderProduct, Product
+from users.models import Address
 
 
 class CategoryListSerializer(serializers.ModelSerializer):
@@ -86,6 +87,13 @@ class OrderListSerializer(serializers.ModelSerializer):
             request.user.full_name = validated_data.get("full_name")
             request.user.save()
 
+        address = validated_data.get("address")
+        if isinstance(address, int):
+            address_id = address
+        else:
+            addr = Address.objects.create(user=request.user, address=address)
+            address_id = addr.pk
+
         order_data = {
             "user": request.user,
             "total_price": total_price,
@@ -93,7 +101,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             "paid": False,
             "delivery_type": validated_data.get("delivery_type", Order.DELIVERY),
             "secondary_phone_number": validated_data.get("secondary_phone_number"),
-            "address": validated_data.get("address"),
+            "address": address_id,
         }
 
         order = Order.objects.create(**order_data)
