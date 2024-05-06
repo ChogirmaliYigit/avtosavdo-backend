@@ -24,7 +24,7 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     def __str__(self):
-        return f"{self.full_name} ({self.phone_number})"
+        return f"{self.full_name or ''} ({self.phone_number})".strip()
 
     class Meta:
         db_table = "users"
