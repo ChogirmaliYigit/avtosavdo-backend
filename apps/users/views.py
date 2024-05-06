@@ -49,7 +49,7 @@ class UserLoginView(APIView):
                 phone_number = request.headers.get("Authorization", "")
             if not phone_number:
                 raise exceptions.ValidationError(
-                    {"phone_number": "Telefon raqam to'ldirilishi shart!!!"}
+                    {"phone_number": "Telefon raqam to'ldirilishi shart"}
                 )
 
             user = User.objects.all().filter(phone_number=phone_number).first()
