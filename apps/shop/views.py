@@ -56,7 +56,6 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 ),
                 "full_name": openapi.Schema(type=openapi.TYPE_STRING),
                 "delivery_type": openapi.Schema(type=openapi.TYPE_STRING),
-                "note": openapi.Schema(type=openapi.TYPE_STRING),
                 "secondary_phone_number": openapi.Schema(type=openapi.TYPE_STRING),
                 "address": openapi.Schema(type=openapi.TYPE_STRING),
             },

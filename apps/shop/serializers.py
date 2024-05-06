@@ -92,7 +92,6 @@ class OrderListSerializer(serializers.ModelSerializer):
             "status": Order.IN_PROCESSING,
             "paid": False,
             "delivery_type": validated_data.get("delivery_type", Order.DELIVERY),
-            "note": validated_data.get("note", ""),
             "secondary_phone_number": validated_data.get("secondary_phone_number"),
             "address": validated_data.get("address"),
         }
@@ -160,7 +159,6 @@ class OrderListSerializer(serializers.ModelSerializer):
             "status",
             "paid",
             "delivery_type",
-            "note",
             "secondary_phone_number",
             "address",
         )
