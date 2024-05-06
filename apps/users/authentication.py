@@ -9,7 +9,6 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
     # List of endpoints that do not require authentication
     allowed_endpoints = [
         "/swagger/",
-        "/",
     ]
 
     def authenticate(self, request):
@@ -40,6 +39,7 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
                 data = {}
             if data.get("telegram_id"):
                 return None
+            print("auth error")
             raise exceptions.AuthenticationFailed("Telefon raqam to'ldirilishi shart")
 
         elif user.is_blocked:
