@@ -8,7 +8,7 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
     # List of endpoints that do not require authentication
     allowed_endpoints = [
         "/swagger/",
-        "/admin/",
+        "/",
     ]
 
     def authenticate(self, request):
