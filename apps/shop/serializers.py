@@ -87,12 +87,12 @@ class OrderListSerializer(serializers.ModelSerializer):
             request.user.full_name = validated_data.get("full_name")
             request.user.save()
 
-        address = validated_data.get("address")
-        if isinstance(address, int):
-            address_id = address
-        else:
-            addr = Address.objects.create(user=request.user, address=address)
-            address_id = addr.pk
+        addr = Address.objects.get_or_create(
+            user=request.user,
+            defaults={
+                "address": validated_data.get("address"),
+            },
+        )
 
         order_data = {
             "user": request.user,
@@ -101,7 +101,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             "paid": False,
             "delivery_type": validated_data.get("delivery_type", Order.DELIVERY),
             "secondary_phone_number": validated_data.get("secondary_phone_number"),
-            "address": address_id,
+            "address": addr.pk,
         }
 
         order = Order.objects.create(**order_data)
