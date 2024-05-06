@@ -1,3 +1,4 @@
+from django.db.models import Q
 from drf_yasg import openapi, utils
 from rest_framework import exceptions, permissions, status
 from rest_framework.response import Response
@@ -52,7 +53,18 @@ class UserLoginView(APIView):
                     {"phone_number": "Telefon raqam to'ldirilishi shart"}
                 )
 
-            user = User.objects.all().filter(phone_number=phone_number).first()
+            phone_number = request.headers.get("Authorization", "")
+            if phone_number.startswith("+"):
+                phone_number_without_plus = phone_number[1:]
+                phone_number_with_plus = phone_number
+            else:
+                phone_number_without_plus = phone_number
+                phone_number_with_plus = f"+{phone_number}"
+            user = User.objects.filter(
+                Q(phone_number=phone_number_with_plus)
+                | Q(phone_number=phone_number_without_plus)
+            ).first()
+
             if not user:
                 serializer = UserSerializer(
                     data=request.data, context={"phone_number": phone_number}
@@ -60,15 +72,18 @@ class UserLoginView(APIView):
                 serializer.is_valid(raise_exception=True)
                 user = serializer.save()
 
-        if user.is_blocked:
+        if user and user.is_blocked:
             raise exceptions.ValidationError(
                 {
                     "detail": "Bekor qilingan buyurtmalaringiz 3 ta bo'lganligi uchun siz admin tomonidan bloklangansiz va botdan foydalana olmaysiz."
                 }
             )
 
-        # Return the user data if authentication is successful
-        return Response(
-            UserSerializer(instance=user, context={"phone_number": phone_number}).data,
-            status=status.HTTP_200_OK,
-        )
+        if user:
+            # Return the user data if authentication is successful
+            return Response(
+                UserSerializer(
+                    instance=user, context={"phone_number": phone_number}
+                ).data,
+                status=status.HTTP_200_OK,
+            )
