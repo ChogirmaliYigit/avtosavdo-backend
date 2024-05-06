@@ -26,10 +26,16 @@ class UserSerializer(serializers.ModelSerializer):
                 "  +998XXXXXXXXX, +998-XX-XXX-XX-XX, +998 XX XXX XX XX"
             )
 
-        if phone_number and not phone_number.startswith("+"):
-            phone_number = f"+{phone_number}"
-
-        user = User.objects.filter(phone_number=phone_number).first()
+        if phone_number.startswith("+"):
+            phone_number_without_plus = phone_number[1:]
+            phone_number_with_plus = phone_number
+        else:
+            phone_number_without_plus = phone_number
+            phone_number_with_plus = f"+{phone_number}"
+        user = User.objects.filter(
+            Q(phone_number=phone_number_with_plus)
+            | Q(phone_number=phone_number_without_plus)
+        ).first()
         if user:
             return user
 
