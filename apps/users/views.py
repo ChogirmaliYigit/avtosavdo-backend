@@ -31,9 +31,11 @@ class UserLoginView(APIView):
                 }
             )
 
+        phone_number = request.data.get("phone_number")
         telegram_id = request.data.get("telegram_id")
+
         if telegram_id:
-            user = User.objects.filter(telegram_id=telegram_id).first()
+            user = User.objects.all().filter(telegram_id=telegram_id).first()
             if user:
                 if not user.addresses.all():
                     return exceptions.ValidationError(
@@ -41,30 +43,24 @@ class UserLoginView(APIView):
                             "detail": "Buyurtma berish uchun botga kirib lokatsiyangizni yuboring!"
                         }
                     )
-                return Response(
-                    UserSerializer(
-                        instance=user, context={"phone_number": user.phone_number}
-                    ).data,
-                    status=status.HTTP_200_OK,
+
+        else:
+            if not phone_number:
+                phone_number = request.headers.get("Authorization", "")
+            if not phone_number:
+                raise exceptions.ValidationError(
+                    {"phone_number": "Telefon raqam to'ldirilishi shart!!!"}
                 )
 
-        phone_number = request.data.get("phone_number")
-        if not phone_number:
-            phone_number = request.headers.get("Authorization", "")
-        if not phone_number:
-            raise exceptions.ValidationError(
-                {"phone_number": "Telefon raqam to'ldirilishi shart"}
-            )
+            user = User.objects.filter(phone_number=phone_number).first()
+            if not user:
+                serializer = UserSerializer(
+                    data=request.data, context={"phone_number": phone_number}
+                )
+                serializer.is_valid(raise_exception=True)
+                user = serializer.save()
 
-        user = User.objects.filter(phone_number=phone_number).first()
-        if not user:
-            serializer = UserSerializer(
-                data=request.data, context={"phone_number": phone_number}
-            )
-            serializer.is_valid(raise_exception=True)
-            user = serializer.save()
-
-        elif user.is_blocked:
+        if user.is_blocked:
             raise exceptions.ValidationError(
                 {
                     "detail": "Bekor qilingan buyurtmalaringiz 3 ta bo'lganligi uchun siz admin tomonidan bloklangansiz va botdan foydalana olmaysiz."
