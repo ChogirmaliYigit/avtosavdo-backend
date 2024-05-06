@@ -52,7 +52,7 @@ class UserLoginView(APIView):
                     {"phone_number": "Telefon raqam to'ldirilishi shart!!!"}
                 )
 
-            user = User.objects.filter(phone_number=phone_number).first()
+            user = User.objects.all().filter(phone_number=phone_number).first()
             if not user:
                 serializer = UserSerializer(
                     data=request.data, context={"phone_number": phone_number}

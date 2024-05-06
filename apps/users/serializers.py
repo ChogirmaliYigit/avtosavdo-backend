@@ -26,10 +26,13 @@ class UserSerializer(serializers.ModelSerializer):
                 "  +998XXXXXXXXX, +998-XX-XXX-XX-XX, +998 XX XXX XX XX"
             )
 
-        if User.objects.filter(phone_number=phone_number).exists():
-            raise exceptions.ValidationError(
-                "Bu telefon raqami allaqachon ro'yxatdan o'tgan!"
-            )
+        if phone_number and not phone_number.startswith("+"):
+            phone_number = f"+{phone_number}"
+
+        user = User.objects.filter(phone_number=phone_number).first()
+        if user:
+            return user
+
         password = f"{phone_number}_{validated_data.get('telegram_id', '')}"
         user = User.objects.create_user(
             phone_number=phone_number,

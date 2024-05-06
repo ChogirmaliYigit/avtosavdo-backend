@@ -37,11 +37,9 @@ class UserManager(BaseUserManager, BaseManager):
 
     def filter(self, *args, **kwargs):
         queryset = super().filter(*args, **kwargs)
-        print(queryset)
         phone_number = kwargs.get("phone_number", "")
         if phone_number and not phone_number.startswith("+"):
             queryset_ = queryset.filter(phone_number=f"+{phone_number}")
             if not queryset_:
                 queryset = queryset.filter(phone_number=phone_number)
-                print(queryset)
         return queryset
