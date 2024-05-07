@@ -155,27 +155,23 @@ class ChatMessage(BaseModel):
 
 
 @receiver(pre_save, sender=Order)
-def order_pre_save_signal(sender, instance, created=False, **kwargs):
-    if not created:
-        telegram = TelegramClient(settings.BOT_TOKEN)
+def order_pre_save_signal(sender, instance, **kwargs):
+    telegram = TelegramClient(settings.BOT_TOKEN)
 
-        order_statuses = {
-            "in_processing": "Jarayonda",
-            "confirmed": "Tasdiqlangan",
-            "performing": "Amalga oshirilyabdi",
-            "success": "Bajarilgan",
-            "canceled": "Bekor qilingan",
-        }
+    order_statuses = {
+        "in_processing": "Jarayonda",
+        "confirmed": "Tasdiqlangan",
+        "performing": "Amalga oshirilyabdi",
+        "success": "Bajarilgan",
+        "canceled": "Bekor qilingan",
+    }
 
-        texts = []
-        old_instance = sender.objects.filter(pk=instance.pk).first()
-        if old_instance and old_instance.status != instance.status:
+    texts = []
+    old_instance = sender.objects.filter(pk=instance.pk).first()
+    if old_instance:
+        if old_instance.status != instance.status:
             texts.append(order_statuses.get(instance.status))
-        if (
-            old_instance
-            and old_instance.paid != instance.paid
-            and instance.paid is True
-        ):
+        if old_instance.paid != instance.paid and instance.paid is True:
             texts.append("To'landi✅")
 
         instance = old_instance
@@ -235,7 +231,7 @@ def order_pre_save_signal(sender, instance, created=False, **kwargs):
             instance.chat_messages.all().filter(chat_id=settings.GROUP_ID).first()
         )
 
-        res = telegram.send(
+        telegram.send(
             "editMessageText",
             data={
                 "chat_id": settings.GROUP_ID,
