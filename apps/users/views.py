@@ -37,13 +37,12 @@ class UserLoginView(APIView):
 
         if telegram_id:
             user = User.objects.all().filter(telegram_id=telegram_id).first()
-            if user:
-                if not user.addresses.all():
-                    return exceptions.ValidationError(
-                        {
-                            "detail": "Buyurtma berish uchun botga kirib lokatsiyangizni yuboring!"
-                        }
-                    )
+            if user and not user.addresses.all():
+                raise exceptions.ValidationError(
+                    {
+                        "detail": "Buyurtma berish uchun botga kirib lokatsiyangizni yuboring!"
+                    }
+                )
 
         else:
             if not phone_number:
@@ -53,7 +52,6 @@ class UserLoginView(APIView):
                     {"phone_number": "Telefon raqam to'ldirilishi shart"}
                 )
 
-            phone_number = request.headers.get("Authorization", "")
             if phone_number.startswith("+"):
                 phone_number_without_plus = phone_number[1:]
                 phone_number_with_plus = phone_number
@@ -79,7 +77,7 @@ class UserLoginView(APIView):
                 }
             )
 
-        if user:
+        elif user:
             # Return the user data if authentication is successful
             return Response(
                 UserSerializer(
