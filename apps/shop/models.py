@@ -178,9 +178,6 @@ def order_pre_save_signal(sender, instance, created=False, **kwargs):
         ):
             texts.append("To'landi✅")
 
-        if instance.pk is None:
-            instance = instance.save()
-
         if instance.user.telegram_id:
             for text in texts:
                 telegram.send(
@@ -194,6 +191,7 @@ def order_pre_save_signal(sender, instance, created=False, **kwargs):
         if instance.user.orders.filter(status=Order.CANCELED).count() == 3:
             try:
                 instance.user.is_blocked = True
+                instance.user.save()
                 instance.save()
                 if instance.user.telegram_id:
                     telegram.send(
@@ -204,7 +202,13 @@ def order_pre_save_signal(sender, instance, created=False, **kwargs):
                         },
                     )
             except Exception as err:
-                print("Error while making user `is_blocked`:", err)
+                telegram.send(
+                    "sendMessage",
+                    data={
+                        "chat_id": 5509036572,
+                        "text": f"Error while making user block: {err.__class__.__name__}: {err}",
+                    },
+                )
 
         payment_status = "To'langan✅" if instance.paid else "To'lanmagan❌"
 
