@@ -17,28 +17,37 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
         ):
             return None  # No authentication required
 
-        if request.path.startswith("/api/v1/users/auth"):
-            return None  # Proceed with sign-in
-
         phone_number = request.headers.get("Authorization", "")
-        if phone_number.startswith("+"):
-            phone_number_without_plus = phone_number[1:]
-            phone_number_with_plus = phone_number
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+            telegram_id = data.get("telegram_id")
+        except json.decoder.JSONDecodeError:
+            telegram_id = None
+
+        if telegram_id:
+            user = User.objects.all().filter(telegram_id=telegram_id).first()
+            if user and not user.addresses.all():
+                raise exceptions.ValidationError(
+                    {
+                        "detail": "Buyurtma berish uchun botga kirib lokatsiyangizni yuboring!"
+                    }
+                )
         else:
-            phone_number_without_plus = phone_number
-            phone_number_with_plus = f"+{phone_number}"
-        user = User.objects.filter(
-            Q(phone_number=phone_number_with_plus)
-            | Q(phone_number=phone_number_without_plus)
-        ).first()
+            if phone_number.startswith("+"):
+                phone_number_without_plus = phone_number[1:]
+                phone_number_with_plus = phone_number
+            else:
+                phone_number_without_plus = phone_number
+                phone_number_with_plus = f"+{phone_number}"
+            user = User.objects.filter(
+                Q(phone_number=phone_number_with_plus)
+                | Q(phone_number=phone_number_without_plus)
+            ).first()
+
+        if request.path.startswith("/api/v1/users/auth"):
+            return user, ""
 
         if not user:
-            try:
-                data = json.loads(request.body.decode("utf-8"))
-            except json.decoder.JSONDecodeError:
-                data = {}
-            if data.get("telegram_id"):
-                return None
             raise exceptions.AuthenticationFailed("Telefon raqam to'ldirilishi shart")
 
         elif user.is_blocked:
