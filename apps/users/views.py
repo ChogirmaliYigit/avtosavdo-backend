@@ -25,11 +25,13 @@ class UserLoginView(APIView):
         },
     )
     def post(self, request):
-        if request.user.is_authenticated:
-            raise exceptions.ValidationError(
-                {
-                    "detail": "Siz allaqachon tizimga kirgansiz! Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊"
-                }
+        if request.user:
+            return Response(
+                UserSerializer(
+                    instance=request.user,
+                    context={"phone_number": request.user.phone_number},
+                ).data,
+                status=status.HTTP_200_OK,
             )
 
         phone_number = request.data.get("phone_number")
