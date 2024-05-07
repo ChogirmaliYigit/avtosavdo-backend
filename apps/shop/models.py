@@ -178,6 +178,8 @@ def order_pre_save_signal(sender, instance, created=False, **kwargs):
         ):
             texts.append("To'landi✅")
 
+        instance = old_instance
+
         if instance.user.telegram_id:
             for text in texts:
                 telegram.send(
