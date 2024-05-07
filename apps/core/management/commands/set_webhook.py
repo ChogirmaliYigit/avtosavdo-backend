@@ -4,9 +4,7 @@ import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-ALLOWED_UPDATES = [
-    "message",
-]
+ALLOWED_UPDATES = ["message", "callback_query"]
 
 
 class Command(BaseCommand):

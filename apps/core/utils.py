@@ -6,7 +6,7 @@ import certifi
 from core.telegram_client import TelegramClient
 from django.conf import settings
 from geopy.geocoders import Nominatim
-from shop.models import Order
+from shop.models import ChatMessage, Order
 from users.models import Address, User
 
 
@@ -260,9 +260,7 @@ def update_order_data(data, token):
         "canceled": "Bekor qilingan",
     }
 
-    order = Order.objects.filter(
-        chat_id=chat_id, message_id=message.get("id"), order_id=int(order_id)
-    ).first()
+    order = Order.objects.filter(id=int(order_id)).first()
     if order:
         if data == "paid":
             order.paid = True
@@ -270,66 +268,26 @@ def update_order_data(data, token):
             order.status = data
         order.save()
 
-        order_statuses = {
-            Order.IN_PROCESSING: "Jarayonda",
-            Order.CONFIRMED: "Tasdiqlangan",
-            Order.PERFORMING: "Amalga oshirilyabdi",
-            Order.SUCCESS: "Bajarilgan",
-            Order.CANCELED: "Bekor qilingan",
-        }
-
-        texts = [order_statuses.get(order.status)]
-        if order.paid is True:
-            texts.append("To'landi✅")
-
-        if order.user.telegram_id:
-            for text in texts:
-                telegram.send(
-                    "sendMessage",
-                    data={
-                        "chat_id": order.user.telegram_id,
-                        "text": f"Sizning №{order.pk} raqamli buyurtmangiz {text}",
-                    },
-                )
-
-        if order.user.orders.filter(status=Order.CANCELED).count() == 3:
-            try:
-                order.user.is_blocked = True
-                order.user.save()
-                order.save()
-                if order.user.telegram_id:
-                    telegram.send(
-                        "sendMessage",
-                        data={
-                            "chat_id": order.user.telegram_id,
-                            "text": "Bekor qilingan buyurtmalaringiz soni 3 taga yetganligi uchun siz botda avtomatik bloklandingiz!",
-                        },
-                    )
-            except Exception as err:
-                pass
-
         statuses = {
-            Order.IN_PROCESSING: {
+            Order.IN_PROCESSING: [
                 Order.CONFIRMED,
                 Order.PERFORMING,
                 Order.SUCCESS,
                 Order.CANCELED,
-            },
-            Order.CONFIRMED: {
+            ],
+            Order.CONFIRMED: [
                 Order.PERFORMING,
                 Order.SUCCESS,
                 Order.CANCELED,
-            },
-            Order.PERFORMING: {
+            ],
+            Order.PERFORMING: [
                 Order.SUCCESS,
                 Order.CANCELED,
-            },
-            Order.SUCCESS: {Order.CANCELED},
-            Order.CANCELED: {},
+            ],
         }
 
         keyboard = []
-        for status in statuses.get(order.status, {}):
+        for status in statuses.get(order.status, []):
             keyboard.append(
                 [
                     {
@@ -368,10 +326,15 @@ def update_order_data(data, token):
                 f"{order_product.product.title} ({order_product.count} ta)"
             )
 
+        chat = ChatMessage.objects.filter(
+            chat_id=chat_id, message_id=message.get("id"), order=order
+        ).first()
+
         telegram.send(
-            "sendMessage",
+            "editMessageText",
             data={
                 "chat_id": settings.GROUP_ID,
+                "message_id": chat.message_id if chat else None,
                 "text": f"<b>№{order.pk} raqamli buyurtma</b>\n\n"
                 f"📱Telefon raqam: <b>{order.user.phone_number}</b>\n"
                 f"📱Qo'shimcha telefon raqam: <b>{order.secondary_phone_number or 'Mavjud emas'}</b>\n"

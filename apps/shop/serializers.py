@@ -153,23 +153,21 @@ class OrderListSerializer(serializers.ModelSerializer):
             )
 
         statuses = {
-            Order.IN_PROCESSING: {
+            Order.IN_PROCESSING: [
                 Order.CONFIRMED,
                 Order.PERFORMING,
                 Order.SUCCESS,
                 Order.CANCELED,
-            },
-            Order.CONFIRMED: {
+            ],
+            Order.CONFIRMED: [
                 Order.PERFORMING,
                 Order.SUCCESS,
                 Order.CANCELED,
-            },
-            Order.PERFORMING: {
+            ],
+            Order.PERFORMING: [
                 Order.SUCCESS,
                 Order.CANCELED,
-            },
-            Order.SUCCESS: {Order.CANCELED},
-            Order.CANCELED: {},
+            ],
         }
 
         keyboard = []

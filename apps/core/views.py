@@ -8,15 +8,16 @@ def router(request_body, token):
     """Parse telegram request and route to handlers (controllers)"""
     data = json.loads(request_body)
     message = data.get("message", {})
-    chat = message.get("chat", {})
-    if chat.get("type", "") == "private":
+    message_chat = message.get("chat", {})
+    call_chat = data.get("callback_query", {}).get("message", {}).get("chat", {})
+    if message_chat.get("type", "") == "private":
         if message.get("text") == "/start":
             start(data, token)
         elif message.get("contact", None) or message.get("text", None):
             set_phone_number(data, token)
         elif message.get("location"):
             set_location(data, token)
-    elif chat.get("type", "") in ["group", "supergroup"]:
+    elif call_chat.get("type", "") in ["group", "supergroup"]:
         update_order_data(data, token)
 
 
@@ -29,6 +30,6 @@ class TelegramWebhookView(views.APIView):
         try:
             router(request.body.decode("utf-8"), bot_token)
         except Exception as error:
-            print(error)
+            print("JSON error:", error)
 
         return response.Response({"ok": True})
