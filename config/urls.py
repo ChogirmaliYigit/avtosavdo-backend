@@ -57,7 +57,7 @@ urlpatterns = [
         schema_view.with_ui("swagger", cache_timeout=0),
         name="swagger-ui",
     ),
-    path("core/", include(("core.urls", "telegram"), namespace="telegram")),
+    path("core/", include("core.urls")),
 ]
 
 if settings.DEBUG:
