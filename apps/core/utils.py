@@ -6,6 +6,7 @@ import certifi
 from core.telegram_client import TelegramClient
 from django.conf import settings
 from geopy.geocoders import Nominatim
+from shop.models import Order
 from users.models import Address, User
 
 
@@ -81,7 +82,6 @@ def start(data, token):
 def set_phone_number(data, token):
     telegram = TelegramClient(token)
     chat_id = data.get("message", {}).get("chat", {}).get("id")
-    user = User.objects.filter(telegram_id=chat_id).first()
     reply_markup = None
 
     if data.get("message", {}).get("contact", {}).get("phone_number", None):
@@ -241,6 +241,153 @@ def send_success_message(telegram: TelegramClient, chat_id):
                 "chat_id": chat_id,
                 "text": "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊",
                 "reply_markup": reply_markup,
+            },
+        )
+
+
+def update_order_data(data, token):
+    telegram = TelegramClient(token)
+    callback_query = data.get("callback_query", {})
+    message = callback_query.get("message", {})
+    chat_id = message.get("chat", {}).get("id")
+    data = callback_query.get("data", "")
+    data, order_id = data.split("_")
+    order_statuses = {
+        "in_processing": "Jarayonda",
+        "confirmed": "Tasdiqlangan",
+        "performing": "Amalga oshirilyabdi",
+        "success": "Bajarilgan",
+        "canceled": "Bekor qilingan",
+    }
+
+    order = Order.objects.filter(
+        chat_id=chat_id, message_id=message.get("id"), order_id=int(order_id)
+    ).first()
+    if order:
+        if data == "paid":
+            order.paid = True
+        elif data in order_statuses.keys():
+            order.status = data
+        order.save()
+
+        order_statuses = {
+            Order.IN_PROCESSING: "Jarayonda",
+            Order.CONFIRMED: "Tasdiqlangan",
+            Order.PERFORMING: "Amalga oshirilyabdi",
+            Order.SUCCESS: "Bajarilgan",
+            Order.CANCELED: "Bekor qilingan",
+        }
+
+        texts = [order_statuses.get(order.status)]
+        if order.paid is True:
+            texts.append("To'landi✅")
+
+        if order.user.telegram_id:
+            for text in texts:
+                telegram.send(
+                    "sendMessage",
+                    data={
+                        "chat_id": order.user.telegram_id,
+                        "text": f"Sizning №{order.pk} raqamli buyurtmangiz {text}",
+                    },
+                )
+
+        if order.user.orders.filter(status=Order.CANCELED).count() == 3:
+            try:
+                order.user.is_blocked = True
+                order.user.save()
+                order.save()
+                if order.user.telegram_id:
+                    telegram.send(
+                        "sendMessage",
+                        data={
+                            "chat_id": order.user.telegram_id,
+                            "text": "Bekor qilingan buyurtmalaringiz soni 3 taga yetganligi uchun siz botda avtomatik bloklandingiz!",
+                        },
+                    )
+            except Exception as err:
+                pass
+
+        statuses = {
+            Order.IN_PROCESSING: {
+                Order.CONFIRMED,
+                Order.PERFORMING,
+                Order.SUCCESS,
+                Order.CANCELED,
+            },
+            Order.CONFIRMED: {
+                Order.PERFORMING,
+                Order.SUCCESS,
+                Order.CANCELED,
+            },
+            Order.PERFORMING: {
+                Order.SUCCESS,
+                Order.CANCELED,
+            },
+            Order.SUCCESS: {Order.CANCELED},
+            Order.CANCELED: {},
+        }
+
+        keyboard = []
+        for status in statuses.get(order.status, {}):
+            keyboard.append(
+                [
+                    {
+                        "text": order_statuses.get(status),
+                        "callback_data": f"{status}_{order.pk}",
+                    }
+                ]
+            )
+
+        if not order.paid:
+            keyboard.append(
+                [
+                    {
+                        "text": "To'langan✅",
+                        "callback_data": f"paid_{order.pk}",
+                    }
+                ]
+            )
+
+        payment_status = "To'langan✅" if order.paid else "To'lanmagan❌"
+
+        delivery_type = (
+            "Yetkazib berish" if order.delivery_type == "delivery" else "Olib ketish"
+        )
+
+        address_text = f"<b>{order.address.address}</b>"
+        if order.address.latitude and order.address.longitude:
+            address_text = (
+                f"<a href='https://www.google.com/maps/@"
+                f"{order.address.latitude},{order.address.longitude},18.5z?entry=ttu'>{address_text}</a>"
+            )
+
+        product_names = []
+        for order_product in order.products.all():
+            product_names.append(
+                f"{order_product.product.title} ({order_product.count} ta)"
+            )
+
+        telegram.send(
+            "sendMessage",
+            data={
+                "chat_id": settings.GROUP_ID,
+                "text": f"<b>№{order.pk} raqamli buyurtma</b>\n\n"
+                f"📱Telefon raqam: <b>{order.user.phone_number}</b>\n"
+                f"📱Qo'shimcha telefon raqam: <b>{order.secondary_phone_number or 'Mavjud emas'}</b>\n"
+                f"📦Holati: {order_statuses.get(order.status)}\n"
+                f"💸To'lov holati: {payment_status}\n"
+                f"🚚Yetkazib berish turi: <b>{delivery_type}</b>\n"
+                f"📍Yetkazib berish manzili: {address_text}\n"
+                f"📋Mahsulotlar: <b>{', '.join(product_names)}</b>\n\n"
+                f"<b>💸Umumiy narx: {order.total_price} so'm</b>",
+                "parse_mode": "html",
+                "disable_web_page_preview": True,
+                "reply_markup": json.dumps(
+                    {
+                        "inline_keyboard": keyboard,
+                    }
+                ),
             },
         )
 

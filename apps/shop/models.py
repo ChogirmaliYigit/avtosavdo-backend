@@ -1,4 +1,5 @@
 import decimal
+import json
 
 from core.models import BaseModel
 from core.telegram_client import TelegramClient
@@ -156,25 +157,24 @@ class ChatMessage(BaseModel):
 
 @receiver(pre_save, sender=Order)
 def order_pre_save_signal(sender, instance, **kwargs):
-    telegram = TelegramClient(settings.BOT_TOKEN)
+    try:
+        telegram = TelegramClient(settings.BOT_TOKEN)
 
-    order_statuses = {
-        "in_processing": "Jarayonda",
-        "confirmed": "Tasdiqlangan",
-        "performing": "Amalga oshirilyabdi",
-        "success": "Bajarilgan",
-        "canceled": "Bekor qilingan",
-    }
+        order_statuses = {
+            Order.IN_PROCESSING: "Jarayonda",
+            Order.CONFIRMED: "Tasdiqlangan",
+            Order.PERFORMING: "Amalga oshirilyabdi",
+            Order.SUCCESS: "Bajarilgan",
+            Order.CANCELED: "Bekor qilingan",
+        }
 
-    texts = []
-    old_instance = sender.objects.filter(pk=instance.pk).first()
-    if old_instance:
-        if old_instance.status != instance.status:
-            texts.append(order_statuses.get(instance.status))
-        if old_instance.paid != instance.paid and instance.paid is True:
-            texts.append("To'landi✅")
-
-        instance = old_instance
+        texts = []
+        old_instance = sender.objects.filter(pk=instance.pk).first()
+        if old_instance:
+            if old_instance.status != instance.status:
+                texts.append(order_statuses.get(instance.status))
+            if old_instance.paid != instance.paid and instance.paid is True:
+                texts.append("To'landi✅")
 
         if instance.user.telegram_id:
             for text in texts:
@@ -231,6 +231,47 @@ def order_pre_save_signal(sender, instance, **kwargs):
             instance.chat_messages.all().filter(chat_id=settings.GROUP_ID).first()
         )
 
+        statuses = {
+            Order.IN_PROCESSING: {
+                Order.CONFIRMED,
+                Order.PERFORMING,
+                Order.SUCCESS,
+                Order.CANCELED,
+            },
+            Order.CONFIRMED: {
+                Order.PERFORMING,
+                Order.SUCCESS,
+                Order.CANCELED,
+            },
+            Order.PERFORMING: {
+                Order.SUCCESS,
+                Order.CANCELED,
+            },
+            Order.SUCCESS: {Order.CANCELED},
+            Order.CANCELED: {},
+        }
+
+        keyboard = []
+        for status in statuses.get(instance.status, {}):
+            keyboard.append(
+                [
+                    {
+                        "text": order_statuses.get(status),
+                        "callback_data": f"{status}_{instance.pk}",
+                    }
+                ]
+            )
+
+        if not instance.paid:
+            keyboard.append(
+                [
+                    {
+                        "text": "To'langan✅",
+                        "callback_data": f"paid_{instance.pk}",
+                    }
+                ]
+            )
+
         telegram.send(
             "editMessageText",
             data={
@@ -247,5 +288,12 @@ def order_pre_save_signal(sender, instance, **kwargs):
                 f"<b>💸Umumiy narx: {instance.total_price} so'm</b>",
                 "parse_mode": "html",
                 "disable_web_page_preview": True,
+                "reply_markup": json.dumps(
+                    {
+                        "inline_keyboard": keyboard,
+                    }
+                ),
             },
         )
+    except Exception as error:
+        print(error)

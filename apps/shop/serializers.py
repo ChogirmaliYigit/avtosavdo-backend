@@ -1,3 +1,5 @@
+import json
+
 from core.telegram_client import TelegramClient
 from django.conf import settings
 from rest_framework import serializers
@@ -150,6 +152,47 @@ class OrderListSerializer(serializers.ModelSerializer):
                 f"{order.address.latitude},{order.address.longitude},18.5z?entry=ttu'>{address_text}</a>"
             )
 
+        statuses = {
+            Order.IN_PROCESSING: {
+                Order.CONFIRMED,
+                Order.PERFORMING,
+                Order.SUCCESS,
+                Order.CANCELED,
+            },
+            Order.CONFIRMED: {
+                Order.PERFORMING,
+                Order.SUCCESS,
+                Order.CANCELED,
+            },
+            Order.PERFORMING: {
+                Order.SUCCESS,
+                Order.CANCELED,
+            },
+            Order.SUCCESS: {Order.CANCELED},
+            Order.CANCELED: {},
+        }
+
+        keyboard = []
+        for status in statuses.get(order.status, {}):
+            keyboard.append(
+                [
+                    {
+                        "text": order_statuses.get(status),
+                        "callback_data": f"{status}_{order.pk}",
+                    }
+                ]
+            )
+
+        if not order.paid:
+            keyboard.append(
+                [
+                    {
+                        "text": "To'langan✅",
+                        "callback_data": f"paid_{order.pk}",
+                    }
+                ]
+            )
+
         response = telegram.send(
             "sendMessage",
             data={
@@ -165,6 +208,11 @@ class OrderListSerializer(serializers.ModelSerializer):
                 f"<b>💸Umumiy narx: {order.total_price} so'm</b>",
                 "parse_mode": "html",
                 "disable_web_page_preview": True,
+                "reply_markup": json.dumps(
+                    {
+                        "inline_keyboard": keyboard,
+                    }
+                ),
             },
         )
         result = response.get("result", {})

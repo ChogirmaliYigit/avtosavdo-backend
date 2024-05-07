@@ -1,6 +1,6 @@
 import json
 
-from core.utils import set_location, set_phone_number, start
+from core.utils import set_location, set_phone_number, start, update_order_data
 from rest_framework import permissions, response, views
 
 
@@ -16,6 +16,8 @@ def router(request_body, token):
             set_phone_number(data, token)
         elif message.get("location"):
             set_location(data, token)
+    elif chat.get("type", "") in ["group", "supergroup"]:
+        update_order_data(data, token)
 
 
 class TelegramWebhookView(views.APIView):
