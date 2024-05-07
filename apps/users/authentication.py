@@ -39,7 +39,6 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
                 data = {}
             if data.get("telegram_id"):
                 return None
-            print("auth error")
             raise exceptions.AuthenticationFailed("Telefon raqam to'ldirilishi shart")
 
         elif user.is_blocked:

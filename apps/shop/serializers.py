@@ -1,7 +1,7 @@
 from core.telegram_client import TelegramClient
 from django.conf import settings
 from rest_framework import serializers
-from shop.models import Category, Order, OrderProduct, Product
+from shop.models import Category, ChatMessage, Order, OrderProduct, Product
 from users.models import Address
 
 
@@ -49,6 +49,7 @@ class OrderListSerializer(serializers.ModelSerializer):
     total_price = serializers.DecimalField(
         max_digits=12, decimal_places=2, required=False
     )
+    address = serializers.CharField(required=True)
 
     def validate(self, data):
         orders = self.context.get("orders", [])
@@ -87,12 +88,13 @@ class OrderListSerializer(serializers.ModelSerializer):
             request.user.full_name = validated_data.get("full_name")
             request.user.save()
 
-        addr = Address.objects.get_or_create(
-            user=request.user,
-            defaults={
-                "address": validated_data.get("address"),
-            },
-        )
+        data = {
+            "user": request.user,
+            "address": validated_data.get("address"),
+        }
+        address = Address.objects.filter(**data).first()
+        if not address:
+            address = Address.objects.create(**data)
 
         order_data = {
             "user": request.user,
@@ -101,7 +103,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             "paid": False,
             "delivery_type": validated_data.get("delivery_type", Order.DELIVERY),
             "secondary_phone_number": validated_data.get("secondary_phone_number"),
-            "address": addr.pk,
+            "address": address,
         }
 
         order = Order.objects.create(**order_data)
@@ -141,22 +143,41 @@ class OrderListSerializer(serializers.ModelSerializer):
             "Yetkazib berish" if order.delivery_type == "delivery" else "Olib ketish"
         )
 
-        telegram.send(
+        address_text = f"<b>{order.address.address}</b>"
+        if order.address.latitude and order.address.longitude:
+            address_text = (
+                f"<a href='https://www.google.com/maps/@"
+                f"{order.address.latitude},{order.address.longitude},18.5z?entry=ttu'>{address_text}</a>"
+            )
+
+        response = telegram.send(
             "sendMessage",
             data={
                 "chat_id": settings.GROUP_ID,
                 "text": f"<b>№{order.pk} raqamli buyurtma</b>\n\n"
                 f"📱Telefon raqam: <b>{request.user.phone_number}</b>\n"
+                f"📱Qo'shimcha telefon raqam: <b>{order.secondary_phone_number or 'Mavjud emas'}</b>\n"
                 f"📦Holati: {order_statuses.get(order.status)}\n"
                 f"💸To'lov holati: {payment_status}\n"
                 f"🚚Yetkazib berish turi: <b>{delivery_type}</b>\n"
-                f"📍Yetkazib berish manzili: <a href='https://www.google.com/maps/@{order.address.latitude},{order.address.longitude},18.5z?entry=ttu'><b>{order.address.address}</b></a>\n"
+                f"📍Yetkazib berish manzili: {address_text}\n"
                 f"📋Mahsulotlar: <b>{', '.join(product_names)}</b>\n\n"
                 f"<b>💸Umumiy narx: {order.total_price} so'm</b>",
                 "parse_mode": "html",
                 "disable_web_page_preview": True,
             },
         )
+        result = response.get("result", {})
+        try:
+            ChatMessage.objects.create(
+                chat_id=settings.GROUP_ID,
+                message_id=result.get("message_id"),
+                order=order,
+            )
+        except Exception as err:
+            print(
+                "Error while creating ChatMessage object:", err.__class__.__name__, err
+            )
         return order
 
     class Meta:

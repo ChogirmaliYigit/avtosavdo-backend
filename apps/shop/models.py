@@ -1,9 +1,11 @@
 import decimal
 
 from core.models import BaseModel
+from core.telegram_client import TelegramClient
+from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from users.models import Address, User
 
@@ -140,11 +142,101 @@ class OrderProduct(BaseModel):
         verbose_name_plural = "Буюртма маҳсулотлари"
 
 
-@receiver(post_save, sender=Order)
-def block_user(sender, instance=None, created=False, **kwargs):
-    if not created and instance.user.orders.filter(status=Order.CANCELED).count() == 3:
-        try:
-            instance.user.is_blocked = True
-            instance.save()
-        except Exception as err:
-            print("Error while making user `is_blocked`:", err)
+class ChatMessage(BaseModel):
+    chat_id = models.BigIntegerField()
+    message_id = models.BigIntegerField()
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="chat_messages"
+    )
+
+    class Meta:
+        db_table = "chat_messages"
+        unique_together = ("chat_id", "message_id", "order")
+
+
+@receiver(pre_save, sender=Order)
+def order_pre_save_signal(sender, instance, created=False, **kwargs):
+    if not created:
+        telegram = TelegramClient(settings.BOT_TOKEN)
+
+        order_statuses = {
+            "in_processing": "Jarayonda",
+            "confirmed": "Tasdiqlangan",
+            "performing": "Amalga oshirilyabdi",
+            "success": "Bajarilgan",
+            "canceled": "Bekor qilingan",
+        }
+
+        texts = []
+        old_instance = sender.objects.get(pk=instance.pk)
+        if old_instance.status != instance.status:
+            texts.append(order_statuses.get(instance.status))
+        if old_instance.paid != instance.paid and instance.paid is True:
+            texts.append("To'landi✅")
+
+        if instance.user.telegram_id:
+            for text in texts:
+                telegram.send(
+                    "sendMessage",
+                    data={
+                        "chat_id": instance.user.telegram_id,
+                        "text": f"Sizning №{instance.pk} raqamli buyurtmangiz {text}",
+                    },
+                )
+
+        if instance.user.orders.filter(status=Order.CANCELED).count() == 3:
+            try:
+                instance.user.is_blocked = True
+                instance.save()
+                if instance.user.telegram_id:
+                    telegram.send(
+                        "sendMessage",
+                        data={
+                            "chat_id": instance.user.telegram_id,
+                            "text": "Bekor qilingan buyurtmalaringiz soni 3 taga yetganligi uchun siz botda avtomatik bloklandingiz!",
+                        },
+                    )
+            except Exception as err:
+                print("Error while making user `is_blocked`:", err)
+
+        payment_status = "To'langan✅" if instance.paid else "To'lanmagan❌"
+
+        delivery_type = (
+            "Yetkazib berish" if instance.delivery_type == "delivery" else "Olib ketish"
+        )
+
+        address_text = f"<b>{instance.address.address}</b>"
+        if instance.address.latitude and instance.address.longitude:
+            address_text = (
+                f"<a href='https://www.google.com/maps/@"
+                f"{instance.address.latitude},{instance.address.longitude},18.5z?entry=ttu'>{address_text}</a>"
+            )
+
+        product_names = []
+        for order_product in instance.products.all():
+            product_names.append(
+                f"{order_product.product.title} ({order_product.count} ta)"
+            )
+
+        chat_message = (
+            instance.chat_messages.all().filter(chat_id=settings.GROUP_ID).first()
+        )
+
+        res = telegram.send(
+            "editMessageText",
+            data={
+                "chat_id": settings.GROUP_ID,
+                "message_id": chat_message.message_id if chat_message else None,
+                "text": f"<b>№{instance.pk} raqamli buyurtma</b>\n\n"
+                f"📱Telefon raqam: <b>{instance.user.phone_number}</b>\n"
+                f"📱Qo'shimcha telefon raqam: <b>{instance.secondary_phone_number or 'Mavjud emas'}</b>\n"
+                f"📦Holati: {order_statuses.get(instance.status)}\n"
+                f"💸To'lov holati: {payment_status}\n"
+                f"🚚Yetkazib berish turi: <b>{delivery_type}</b>\n"
+                f"📍Yetkazib berish manzili: {address_text}\n"
+                f"📋Mahsulotlar: <b>{', '.join(product_names)}</b>\n\n"
+                f"<b>💸Umumiy narx: {instance.total_price} so'm</b>",
+                "parse_mode": "html",
+                "disable_web_page_preview": True,
+            },
+        )

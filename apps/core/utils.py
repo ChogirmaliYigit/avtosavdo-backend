@@ -100,36 +100,31 @@ def set_phone_number(data, token):
             "+998XXXXXXXXX, +998-XX-XXX-XX-XX, +998 XX XXX XX XX"
         )
     else:
-        if (
-            User.objects.filter(phone_number=phone_number)
-            .exclude(telegram_id=chat_id)
-            .first()
-        ):
-            text = "Bu telefon raqami oldin ro'yxatdan o'tgan"
-        else:
-            if not user:
-                user = User.objects.create_user(
-                    phone_number=phone_number,
-                    password=str(chat_id),
-                    telegram_id=chat_id,
-                )
-            user.phone_number = phone_number
-            user.save()
-
-            text = "Telefon saqlandi✅\n\nManzilingizni yuboring"
-            reply_markup = json.dumps(
-                {
-                    "keyboard": [
-                        [
-                            {
-                                "text": "Lokatsiyani yuborish",
-                                "request_location": True,
-                            }
-                        ]
-                    ],
-                    "resize_keyboard": True,
-                }
+        user = User.objects.filter(phone_number=phone_number).first()
+        if user:
+            user.telegram_id = chat_id
+        if not user:
+            user = User.objects.create_user(
+                phone_number=phone_number,
+                password=str(chat_id),
+                telegram_id=chat_id,
             )
+        user.save()
+
+        text = "Telefon saqlandi✅\n\nManzilingizni yuboring"
+        reply_markup = json.dumps(
+            {
+                "keyboard": [
+                    [
+                        {
+                            "text": "Lokatsiyani yuborish",
+                            "request_location": True,
+                        }
+                    ]
+                ],
+                "resize_keyboard": True,
+            }
+        )
 
     telegram.send(
         "sendMessage",
