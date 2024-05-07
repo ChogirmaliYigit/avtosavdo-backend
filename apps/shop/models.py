@@ -168,10 +168,14 @@ def order_pre_save_signal(sender, instance, created=False, **kwargs):
         }
 
         texts = []
-        old_instance = sender.objects.get(pk=instance.pk)
-        if old_instance.status != instance.status:
+        old_instance = sender.objects.filter(pk=instance.pk).first()
+        if old_instance and old_instance.status != instance.status:
             texts.append(order_statuses.get(instance.status))
-        if old_instance.paid != instance.paid and instance.paid is True:
+        if (
+            old_instance
+            and old_instance.paid != instance.paid
+            and instance.paid is True
+        ):
             texts.append("To'landi✅")
 
         if instance.user.telegram_id:
