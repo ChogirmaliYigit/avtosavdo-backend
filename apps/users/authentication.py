@@ -23,7 +23,7 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
             data = json.loads(request.body.decode("utf-8"))
             telegram_id = data.get("telegram_id")
             if not phone_number:
-            phone_number = data.get("phone_number", "")
+                phone_number = data.get("phone_number", "")
         except json.decoder.JSONDecodeError:
             telegram_id = None
 
