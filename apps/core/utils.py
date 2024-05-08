@@ -228,6 +228,33 @@ def send_success_message(telegram: TelegramClient, chat_id):
         method = "sendMessage"
         data["text"] = "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊"
 
+    telegram.send(
+        "sendMessage",
+        data={
+            "chat_id": chat_id,
+            "text": "Assalomu aleykum!",
+            "reply_markup": json.dumps(
+                {
+                    "keyboard": [
+                        [
+                            {
+                                "text": "Lokatsiya qo'shish",
+                                "request_location": True,
+                            }
+                        ],
+                        [
+                            {
+                                "text": "Telefon raqamni yangilash",
+                                "request_contact": True,
+                            }
+                        ],
+                    ],
+                    "resize_keyboard": True,
+                }
+            ),
+        },
+    )
+
     res = telegram.send(
         method,
         data=data,
