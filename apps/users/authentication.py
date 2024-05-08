@@ -18,9 +18,12 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
             return None  # No authentication required
 
         phone_number = request.headers.get("Authorization", "")
+
         try:
             data = json.loads(request.body.decode("utf-8"))
             telegram_id = data.get("telegram_id")
+            if not phone_number:
+            phone_number = data.get("phone_number", "")
         except json.decoder.JSONDecodeError:
             telegram_id = None
 
@@ -57,4 +60,4 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
                 }
             )
 
-        return user, "1"
+        return user, ""
