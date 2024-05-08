@@ -48,9 +48,6 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
             ).first()
 
         if request.path.startswith("/api/v1/users/auth"):
-            print(user)
-            print(user.phone_number)
-            print(user.is_blocked)
             return user, ""
 
         if not user:

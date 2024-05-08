@@ -35,7 +35,6 @@ class UserLoginView(APIView):
             )
 
         phone_number = request.data.get("phone_number")
-        print("View body number:", phone_number)
         telegram_id = request.data.get("telegram_id")
 
         if telegram_id:
