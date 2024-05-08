@@ -43,6 +43,7 @@ class OrderAdmin(ModelAdmin):
         "status",
         "paid",
         "delivery_type",
+        "secondary_phone_number",
     )
     search_fields = list_display + ("id",)
     list_filter = (
