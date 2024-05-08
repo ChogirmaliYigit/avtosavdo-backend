@@ -91,6 +91,9 @@ def set_phone_number(data, token):
     else:
         phone_number = data.get("message", {}).get("text", None)
 
+    if not phone_number.startswith("+"):
+        phone_number = f"+{phone_number}"
+
     if not re.match(
         r"^\+?998?\s?-?([0-9]{2})\s?-?(\d{3})\s?-?(\d{2})\s?-?(\d{2})$",
         phone_number,

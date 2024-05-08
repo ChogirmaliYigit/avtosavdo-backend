@@ -52,16 +52,7 @@ class UserLoginView(APIView):
                     {"phone_number": "Telefon raqam to'ldirilishi shart"}
                 )
 
-            if phone_number.startswith("+"):
-                phone_number_without_plus = phone_number[1:]
-                phone_number_with_plus = phone_number
-            else:
-                phone_number_without_plus = phone_number
-                phone_number_with_plus = f"+{phone_number}"
-            user = User.objects.filter(
-                Q(phone_number=phone_number_with_plus)
-                | Q(phone_number=phone_number_without_plus)
-            ).first()
+            user = User.objects.filter(phone_number=phone_number).first()
 
             if not user:
                 serializer = UserSerializer(
