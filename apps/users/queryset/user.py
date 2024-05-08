@@ -17,6 +17,7 @@ class UserManager(BaseUserManager, BaseManager):
         if not phone_number:
             raise ValueError(_("The phone number must be set"))
         user = self.filter(phone_number=phone_number).first()
+        print("Queryset phone number:", phone_number)
         if not user:
             user = self.model(phone_number=phone_number, **extra_fields)
             user.set_password(password)
