@@ -48,8 +48,6 @@ class UserLoginView(APIView):
 
         else:
             if not phone_number:
-                phone_number = request.headers.get("Authorization", "")
-            if not phone_number:
                 raise exceptions.ValidationError(
                     {"phone_number": "Telefon raqam to'ldirilishi shart"}
                 )
