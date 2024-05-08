@@ -44,4 +44,5 @@ class UserManager(BaseUserManager, BaseManager):
             queryset_ = queryset.filter(phone_number=f"+{phone_number}")
             if not queryset_:
                 queryset = queryset.filter(phone_number=phone_number)
+        queryset = queryset.filter(is_blocked__in=[True, False])
         return queryset
