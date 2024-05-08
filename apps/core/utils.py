@@ -333,6 +333,10 @@ def update_order_data(data, token):
             chat_id=chat_id, message_id=message.get("id"), order=order
         ).first()
 
+        secondary_phone_number = order.secondary_phone_number
+        if secondary_phone_number == "+998":
+            secondary_phone_number = "Mavjud emas"
+
         telegram.send(
             "editMessageText",
             data={
@@ -340,7 +344,7 @@ def update_order_data(data, token):
                 "message_id": chat.message_id if chat else None,
                 "text": f"<b>№{order.pk} raqamli buyurtma</b>\n\n"
                 f"📱Telefon raqam: <b>{order.user.phone_number}</b>\n"
-                f"📱Qo'shimcha telefon raqam: <b>{order.secondary_phone_number or 'Mavjud emas'}</b>\n"
+                f"📱Qo'shimcha telefon raqam: <b>{secondary_phone_number}</b>\n"
                 f"📦Holati: {order_statuses.get(order.status)}\n"
                 f"💸To'lov holati: {payment_status}\n"
                 f"🚚Yetkazib berish turi: <b>{delivery_type}</b>\n"
