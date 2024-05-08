@@ -36,6 +36,9 @@ class UserSerializer(serializers.ModelSerializer):
             Q(phone_number=phone_number_with_plus)
             | Q(phone_number=phone_number_without_plus)
         ).first()
+        print("Phone number on serializer:", phone_number)
+        print("Phone number with + on serializer:", phone_number_with_plus)
+        print("Phone number without + on serializer:", phone_number_without_plus)
         if user:
             return user
 
