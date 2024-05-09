@@ -69,7 +69,7 @@ class Order(BaseModel):
         (IN_PROCESSING, "Жараёнда"),
         (CONFIRMED, "Тасдиқланган"),
         (PERFORMING, "Амалга оширилябди"),
-        (SUCCESS, "Бажарилган"),
+        (SUCCESS, "Етказиб берилган"),
         (CANCELED, "Бекор қилинган"),
     )
 
@@ -164,7 +164,7 @@ def order_pre_save_signal(sender, instance, **kwargs):
             Order.IN_PROCESSING: "Jarayonda",
             Order.CONFIRMED: "Tasdiqlangan",
             Order.PERFORMING: "Amalga oshirilyabdi",
-            Order.SUCCESS: "Bajarilgan",
+            Order.SUCCESS: "Yetkazib berilgan",
             Order.CANCELED: "Bekor qilingan",
         }
 

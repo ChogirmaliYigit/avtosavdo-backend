@@ -286,7 +286,7 @@ def update_order_data(data, token):
         "in_processing": "Jarayonda",
         "confirmed": "Tasdiqlangan",
         "performing": "Amalga oshirilyabdi",
-        "success": "Bajarilgan",
+        "success": "Yetkazib berilgan",
         "canceled": "Bekor qilingan",
     }
 
@@ -296,6 +296,8 @@ def update_order_data(data, token):
             order.paid = True
         elif data in order_statuses.keys():
             order.status = data
+            if data == "canceled":
+                order.paid = False
         order.save()
 
         statuses = {

@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
                     ("in_processing", "Jarayonda"),
                     ("confirmed", "Tasdiqlangan"),
                     ("performing", "Amalga oshirilyabdi"),
-                    ("success", "Bajarilgan"),
+                    ("success", "Yetkazib berilgan"),
                     ("canceled", "Bekor qilingan"),
                 ],
                 default="in_processing",

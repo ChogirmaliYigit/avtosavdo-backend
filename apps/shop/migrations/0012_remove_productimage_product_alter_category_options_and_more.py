@@ -110,7 +110,7 @@ class Migration(migrations.Migration):
                     ("in_processing", "Жараёнда"),
                     ("confirmed", "Тасдиқланган"),
                     ("performing", "Амалга оширилябди"),
-                    ("success", "Бажарилган"),
+                    ("success", "Етказиб берилган"),
                     ("canceled", "Бекор қилинган"),
                 ],
                 default="in_processing",
