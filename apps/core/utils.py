@@ -165,7 +165,7 @@ def set_location(data, token):
                 "sendMessage",
                 data={
                     "chat_id": chat_id,
-                    "text": "Qo'shko'pirdan tashqarida buyurtma berolmaysiz!",
+                    "text": "Siz bepul yetkazib berish doirasidan tashqarida bo'lganingiz sababli qo'shimcha to'lov orqali buyurtma berish uchun +998771164949 telefon nomeriga bog'laning.",
                 },
             )
             return
