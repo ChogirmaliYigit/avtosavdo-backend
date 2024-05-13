@@ -8,7 +8,7 @@ class UserAdmin(ModelAdmin):
     list_display = (
         "phone_number",
         "full_name",
-        "is_blocked",
+        "display_is_blocked",
     )
     list_filter = ("is_blocked",)
     fields = (
@@ -25,3 +25,9 @@ class UserAdmin(ModelAdmin):
     )
 
     list_filter_submit = True
+
+    def display_is_blocked(self, obj):
+        return obj.is_blocked
+
+    display_is_blocked.boolean = True
+    display_is_blocked.short_description = "Блокланганми"
