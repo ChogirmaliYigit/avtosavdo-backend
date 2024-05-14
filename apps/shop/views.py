@@ -104,6 +104,10 @@ class IntegrateView(generics.CreateAPIView):
                     except IntegrityError:
                         pass
 
-        Product.objects.bulk_create(product_objects)
+        for product_object in product_objects:
+            try:
+                product_object.save()
+            except IntegrityError:
+                pass
 
         return response.Response({}, status.HTTP_201_CREATED)
