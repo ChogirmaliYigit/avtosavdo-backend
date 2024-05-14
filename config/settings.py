@@ -42,6 +42,8 @@ IMAGE_FILE_ID = env.str("IMAGE_FILE_ID")
 ALLOWED_HOSTS = env.str("ALLOWED_HOSTS", "").split(",")
 CSRF_TRUSTED_ORIGINS = env.str("CSRF_TRUSTED_ORIGINS", "").split(",")
 
+ALIPOS_ACCESS_TOKEN = env.str("ALIPOS_ACCESS_TOKEN", "")
+
 
 # Application definition
 INSTALLED_APPS = [

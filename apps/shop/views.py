@@ -1,3 +1,5 @@
+import requests
+from django.conf import settings
 from drf_yasg import openapi, utils
 from rest_framework import generics, response, status
 from shop.models import Category, Order, Product
@@ -72,4 +74,32 @@ class OrderListCreateView(generics.ListCreateAPIView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        return response.Response({}, status.HTTP_201_CREATED)
+
+
+class IntegrateView(generics.CreateAPIView):
+    def post(self, request, *args, **kwargs):
+        res = requests.get(
+            "https://web.alipos.uz/external/menu",
+            headers={"access-token": settings.ALIPOS_ACCESS_TOKEN},
+        ).json()
+
+        product_objects = []
+        for cat in res.get("categories"):
+            category = Category.objects.create(
+                title=cat.get("name"), external_id=cat.get("id")
+            )
+            for product in res.get("products"):
+                if product.get("categoryId") == cat.get("id"):
+                    product_objects.append(
+                        Product(
+                            title=product.get("name"),
+                            external_id=product.get("id"),
+                            price=product.get("price"),
+                            category=category,
+                        )
+                    )
+
+        Product.objects.bulk_create(product_objects)
+
         return response.Response({}, status.HTTP_201_CREATED)

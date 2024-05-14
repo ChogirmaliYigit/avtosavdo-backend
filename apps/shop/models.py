@@ -13,6 +13,7 @@ from users.models import Address, User
 
 class Category(BaseModel):
     title = models.CharField(verbose_name="Номи", max_length=500, unique=True)
+    external_id = models.CharField(max_length=500, null=True, blank=True)
 
     def __str__(self):
         return self.title
@@ -40,6 +41,7 @@ class Product(BaseModel):
         default=0.00,
     )
     image = models.ImageField(verbose_name="Расм", upload_to="products/")
+    external_id = models.CharField(max_length=500, null=True, blank=True)
 
     def __str__(self):
         return self.title

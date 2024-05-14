@@ -1,5 +1,6 @@
 import json
 
+import requests
 from core.telegram_client import TelegramClient
 from django.conf import settings
 from rest_framework import serializers
@@ -120,7 +121,8 @@ class OrderListSerializer(serializers.ModelSerializer):
             )
 
         # Bulk creates the OrderProduct objects
-        OrderProduct.objects.bulk_create(order_product_objects)
+        order_product_pks = OrderProduct.objects.bulk_create(order_product_objects)
+        order_products = OrderProduct.objects.filter(id__in=order_product_pks)
 
         telegram = TelegramClient(settings.BOT_TOKEN)
         telegram.send(
@@ -224,6 +226,35 @@ class OrderListSerializer(serializers.ModelSerializer):
             print(
                 "Error while creating ChatMessage object:", err.__class__.__name__, err
             )
+
+        requests.post(
+            "https://web.alipos.uz/externalOrder",
+            headers={"access-token": settings.ALIPOS_ACCESS_TOKEN},
+            data={
+                "id": order.pk,
+                "restaurantId": "8A755C69-4459-AC5C-FFDF59751E21",
+                "orderType": "deliver",
+                "comment": "Комментарий  к заказу",
+                "deliveryInfo": {
+                    "clientName": order.user.full_name,
+                    "phoneNumber": order.user.phone_number,
+                    "deliveryAddress": {
+                        "full": order.address.address,
+                        "latitude": order.address.latitude,
+                        "longitude": order.address.longitude,
+                    },
+                },
+                "items": [
+                    {
+                        "id": order_product.product.external_id,
+                        "quantity": order_product.count,
+                        "price": order_product.product.real_price * order_product.count,
+                    }
+                    for order_product in order_products
+                ],
+            },
+        )
+
         return order
 
     class Meta:
