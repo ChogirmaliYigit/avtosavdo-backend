@@ -226,7 +226,7 @@ class OrderListSerializer(serializers.ModelSerializer):
                 "Error while creating ChatMessage object:", err.__class__.__name__, err
             )
 
-        requests.post(
+        r = requests.post(
             "https://web.alipos.uz/externalOrder",
             headers={"access-token": settings.ALIPOS_ACCESS_TOKEN},
             data={
@@ -253,6 +253,8 @@ class OrderListSerializer(serializers.ModelSerializer):
                 ],
             },
         )
+
+        print("ALIPOS response:", r.json())
 
         return order
 
