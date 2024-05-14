@@ -121,8 +121,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             )
 
         # Bulk creates the OrderProduct objects
-        order_product_pks = OrderProduct.objects.bulk_create(order_product_objects)
-        order_products = OrderProduct.objects.filter(id__in=order_product_pks)
+        order_products = OrderProduct.objects.bulk_create(order_product_objects)
 
         telegram = TelegramClient(settings.BOT_TOKEN)
         telegram.send(
