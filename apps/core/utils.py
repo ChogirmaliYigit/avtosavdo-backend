@@ -329,7 +329,7 @@ def update_order_data(data, token):
                 ]
             )
 
-        if not order.paid or order.status != Order.CANCELED:
+        if not order.paid and order.status != Order.CANCELED:
             keyboard.append(
                 [
                     {
