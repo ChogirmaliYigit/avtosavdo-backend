@@ -1,5 +1,6 @@
 import requests
 from django.conf import settings
+from django.db import IntegrityError
 from drf_yasg import openapi, utils
 from rest_framework import generics, response, status
 from shop.models import Category, Order, Product
@@ -86,19 +87,22 @@ class IntegrateView(generics.CreateAPIView):
 
         product_objects = []
         for cat in res.get("categories"):
-            category = Category.objects.create(
+            category, created = Category.objects.get_or_create(
                 title=cat.get("name"), external_id=cat.get("id")
             )
             for product in res.get("products"):
                 if product.get("categoryId") == cat.get("id"):
-                    product_objects.append(
-                        Product(
-                            title=product.get("name"),
-                            external_id=product.get("id"),
-                            price=product.get("price"),
-                            category=category,
+                    try:
+                        product_objects.append(
+                            Product(
+                                title=product.get("name"),
+                                external_id=product.get("id"),
+                                price=product.get("price"),
+                                category=category,
+                            )
                         )
-                    )
+                    except IntegrityError:
+                        pass
 
         Product.objects.bulk_create(product_objects)
 
