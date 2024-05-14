@@ -1,4 +1,5 @@
 import json
+from json import JSONDecodeError
 
 import requests
 from core.telegram_client import TelegramClient
@@ -254,7 +255,10 @@ class OrderListSerializer(serializers.ModelSerializer):
             },
         )
 
-        print("ALIPOS response:", r.json())
+        try:
+            print("ALIPOS response:", r.json())
+        except JSONDecodeError:
+            pass
 
         return order
 
