@@ -209,3 +209,5 @@ SWAGGER_SETTINGS = {
         "Token": {"type": "apiKey", "name": "Authorization", "in": "header"},
     },
 }
+
+ADMINS = env.str("ADMINS", "").split(",")

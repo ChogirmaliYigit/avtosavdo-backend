@@ -391,6 +391,35 @@ def update_order_data(data, token):
         )
 
 
+def send_post(data, token):
+    telegram = TelegramClient(token)
+    message = data.get("message", {})
+
+    count, users = 0, 0
+    for user in User.objects.all().filter(is_blocked=False):
+        users += 1
+        res = telegram.send(
+            "copyMessage",
+            data={
+                "chat_id": user.telegram_id,
+                "from_chat_id": message.get("from", {}).get("id"),
+                "message_id": message.get("id"),
+            },
+        )
+        if res.get("ok"):
+            count += 1
+        else:
+            print(res)
+
+    telegram.send(
+        "sendMessage",
+        data={
+            "chat_id": message.get("from", {}).get("id"),
+            "text": f"Xabar {users} ta foydalanuvchidan {count} tasiga yuborildi ✅",
+        },
+    )
+
+
 def get_address_by_location(latitude, longitude):
     ca_file = certifi.where()
     context = ssl.create_default_context(cafile=ca_file)
