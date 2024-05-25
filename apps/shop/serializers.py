@@ -273,3 +273,39 @@ class OrderListSerializer(serializers.ModelSerializer):
             "secondary_phone_number",
             "address",
         )
+
+
+class OrderDetailSerializer(serializers.ModelSerializer):
+    phone_number = serializers.SerializerMethodField()
+    address = serializers.SerializerMethodField()
+    products = serializers.SerializerMethodField()
+
+    def get_phone_number(self, order):
+        return order.user.phone_number
+
+    def get_address(self, order):
+        return {
+            "address": order.address.address,
+            "latitude": order.address.latitude,
+            "longitude": order.address.longitude,
+        }
+
+    def get_products(self, order):
+        return [
+            {"title": product.title, "count": product.count}
+            for product in order.products.all()
+        ]
+
+    class Meta:
+        model = Order
+        fields = (
+            "id",
+            "phone_number",
+            "secondary_phone_number",
+            "status",
+            "paid",
+            "delivery_type",
+            "address",
+            "products",
+            "total_price",
+        )

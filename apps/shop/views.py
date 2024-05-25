@@ -2,10 +2,11 @@ import requests
 from django.conf import settings
 from django.db import IntegrityError
 from drf_yasg import openapi, utils
-from rest_framework import generics, response, status
+from rest_framework import generics, response, status, views
 from shop.models import Category, Order, Product
 from shop.serializers import (
     CategoryListSerializer,
+    OrderDetailSerializer,
     OrderListSerializer,
     ProductsListSerializer,
 )
@@ -78,7 +79,18 @@ class OrderListCreateView(generics.ListCreateAPIView):
         return response.Response({}, status.HTTP_201_CREATED)
 
 
-class IntegrateView(generics.CreateAPIView):
+class OrderUpdateView(generics.UpdateAPIView):
+    serializer_class = OrderDetailSerializer
+
+    def get_queryset(self):
+        return (
+            Order.objects.filter(user=self.request.user)
+            if not self.request.user.is_anonymous
+            else []
+        )
+
+
+class IntegrateView(views.APIView):
     def post(self, request, *args, **kwargs):
         res = requests.get(
             "https://web.alipos.uz/external/menu",

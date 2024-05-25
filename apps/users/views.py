@@ -1,9 +1,9 @@
-from django.db.models import Q
+from core.utils import check_user_location, get_address_by_location
 from drf_yasg import openapi, utils
 from rest_framework import exceptions, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from users.models import User
+from users.models import Address, User
 from users.serializers import UserSerializer
 
 
@@ -76,3 +76,45 @@ class UserLoginView(APIView):
                 ).data,
                 status=status.HTTP_200_OK,
             )
+
+
+class UpdateUserDataView(APIView):
+    def put(self, request, telegram_id: int):
+        user = User.objects.filter(telegram_id=telegram_id).first()
+        if user:
+            phone_number = request.data.get("phone_number")
+            latitude = request.data.get("latitude")
+            longitude = request.data.get("longitude")
+            address = request.data.get("address")
+
+            if phone_number:
+                user.phone_number = phone_number
+
+            if latitude and longitude:
+                address_data = {
+                    "user": user,
+                    "latitude": latitude,
+                    "longitude": longitude,
+                }
+                address = Address.objects.filter(**address_data).first()
+                if not address:
+                    address_data["address"] = get_address_by_location(
+                        latitude, longitude
+                    )
+
+                    if check_user_location(latitude, longitude):
+                        Address.objects.create(**address_data)
+                    else:
+                        return Response(
+                            {
+                                "message": "Siz bepul yetkazib berish doirasidan tashqarida bo'lganingiz sababli qo'shimcha to'lov orqali buyurtma berish uchun +998771164949 telefon nomeriga bog'laning."
+                            },
+                            status.HTTP_403_FORBIDDEN,
+                        )
+            elif address:
+                Address.objects.create(user=user, address=address)
+
+            user.save()
+            return Response({}, status.HTTP_200_OK)
+        else:
+            return Response({}, status.HTTP_404_NOT_FOUND)
