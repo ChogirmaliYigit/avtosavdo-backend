@@ -9,5 +9,6 @@ class TelegramClient:
         response = requests.post(
             f"https://api.telegram.org/bot{self.bot_token}/{method}",
             data=data,
+            timeout=60,
         ).json()
         return response
