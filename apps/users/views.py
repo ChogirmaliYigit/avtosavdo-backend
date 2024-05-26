@@ -86,6 +86,12 @@ class UpdateUserDataView(APIView):
 
     def put(self, request, telegram_id: int):
         user = User.objects.filter(telegram_id=telegram_id).first()
+        if not user:
+            user = User.objects.create_user(
+                phone_number=f"+{telegram_id}",
+                password=str(telegram_id),
+                telegram_id=telegram_id,
+            )
         if user:
             phone_number = request.data.get("phone_number")
             latitude = request.data.get("latitude")
