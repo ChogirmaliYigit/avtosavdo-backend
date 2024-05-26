@@ -242,14 +242,6 @@ def order_pre_save_signal(sender, instance, **kwargs):
             try:
                 instance.user.is_blocked = True
                 instance.user.save()
-                if instance.user.telegram_id:
-                    telegram.send(
-                        "sendMessage",
-                        data={
-                            "chat_id": instance.user.telegram_id,
-                            "text": "Bekor qilingan buyurtmalaringiz soni 3 taga yetganligi uchun siz botda avtomatik bloklandingiz!",
-                        },
-                    )
             except Exception as err:
                 telegram.send(
                     "sendMessage",
@@ -258,91 +250,5 @@ def order_pre_save_signal(sender, instance, **kwargs):
                         "text": f"Error while making user block: {err.__class__.__name__}: {err}",
                     },
                 )
-
-        payment_status = "To'langan✅" if instance.paid else "To'lanmagan❌"
-
-        delivery_type = (
-            "Yetkazib berish" if instance.delivery_type == "delivery" else "Olib ketish"
-        )
-
-        address_text = f"<b>{instance.address.address}</b>"
-        if instance.address.latitude and instance.address.longitude:
-            address_text = (
-                f"<a href='https://www.google.com/maps/@"
-                f"{instance.address.latitude},{instance.address.longitude},18.5z?entry=ttu'>{address_text}</a>"
-            )
-
-        product_names = []
-        for order_product in instance.products.all():
-            product_names.append(
-                f"{order_product.product.title} ({order_product.count} ta)"
-            )
-
-        chat_message = (
-            instance.chat_messages.all().filter(chat_id=settings.GROUP_ID).first()
-        )
-
-        statuses = {
-            Order.IN_PROCESSING: [
-                Order.CONFIRMED,
-                Order.PERFORMING,
-                Order.SUCCESS,
-                Order.CANCELED,
-            ],
-            Order.CONFIRMED: [
-                Order.PERFORMING,
-                Order.SUCCESS,
-                Order.CANCELED,
-            ],
-            Order.PERFORMING: [
-                Order.SUCCESS,
-                Order.CANCELED,
-            ],
-        }
-
-        keyboard = []
-        for status in statuses.get(instance.status, {}):
-            keyboard.append(
-                [
-                    {
-                        "text": order_statuses.get(status),
-                        "callback_data": f"{status}_{instance.pk}",
-                    }
-                ]
-            )
-
-        if not instance.paid:
-            keyboard.append(
-                [
-                    {
-                        "text": "To'langan✅",
-                        "callback_data": f"paid_{instance.pk}",
-                    }
-                ]
-            )
-
-        telegram.send(
-            "editMessageText",
-            data={
-                "chat_id": settings.GROUP_ID,
-                "message_id": chat_message.message_id if chat_message else None,
-                "text": f"<b>№{instance.pk} raqamli buyurtma</b>\n\n"
-                f"📱Telefon raqam: <b>{instance.user.phone_number}</b>\n"
-                f"📱Qo'shimcha telefon raqam: <b>{instance.secondary_phone_number or 'Mavjud emas'}</b>\n"
-                f"📦Holati: {order_statuses.get(instance.status)}\n"
-                f"💸To'lov holati: {payment_status}\n"
-                f"🚚Yetkazib berish turi: <b>{delivery_type}</b>\n"
-                f"📍Yetkazib berish manzili: {address_text}\n"
-                f"📋Mahsulotlar: <b>{', '.join(product_names)}</b>\n\n"
-                f"<b>💸Umumiy narx: {instance.total_price} so'm</b>",
-                "parse_mode": "html",
-                "disable_web_page_preview": True,
-                "reply_markup": json.dumps(
-                    {
-                        "inline_keyboard": keyboard,
-                    }
-                ),
-            },
-        )
     except Exception as error:
         print(error)
