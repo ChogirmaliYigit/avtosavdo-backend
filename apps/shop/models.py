@@ -207,7 +207,7 @@ def order_pre_save_signal(sender, instance, **kwargs):
                 "chat_id": instance.user.telegram_id,
                 "reply_markup": reply_markup,
             }
-            if settings.IMAGE_FILE_ID:
+            if hasattr(settings, "IMAGE_FILE_ID"):
                 data["photo"] = settings.IMAGE_FILE_ID
                 data[
                     "caption"
@@ -218,33 +218,6 @@ def order_pre_save_signal(sender, instance, **kwargs):
                 data[
                     "text"
                 ] = "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊"
-
-            telegram.send(
-                "sendMessage",
-                data={
-                    "chat_id": instance.user.telegram_id,
-                    "text": "Assalomu aleykum!",
-                    "reply_markup": json.dumps(
-                        {
-                            "keyboard": [
-                                [
-                                    {
-                                        "text": "Lokatsiya qo'shish",
-                                        "request_location": True,
-                                    }
-                                ],
-                                [
-                                    {
-                                        "text": "Telefon raqamni ulashish",
-                                        "request_contact": True,
-                                    }
-                                ],
-                            ],
-                            "resize_keyboard": True,
-                        }
-                    ),
-                },
-            )
 
             res = telegram.send(
                 method,
