@@ -188,6 +188,83 @@ def order_pre_save_signal(sender, instance, **kwargs):
                     },
                 )
 
+            reply_markup = json.dumps(
+                {
+                    "inline_keyboard": [
+                        [
+                            {
+                                "text": "Menu",
+                                "web_app": {
+                                    "url": settings.WEB_APP_URL,
+                                },
+                            }
+                        ]
+                    ]
+                }
+            )
+
+            data = {
+                "chat_id": instance.user.telegram_id,
+                "reply_markup": reply_markup,
+            }
+            if settings.IMAGE_FILE_ID:
+                data["photo"] = settings.IMAGE_FILE_ID
+                data[
+                    "caption"
+                ] = "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊"
+                method = "sendPhoto"
+            else:
+                method = "sendMessage"
+                data[
+                    "text"
+                ] = "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊"
+
+            telegram.send(
+                "sendMessage",
+                data={
+                    "chat_id": instance.user.telegram_id,
+                    "text": "Assalomu aleykum!",
+                    "reply_markup": json.dumps(
+                        {
+                            "keyboard": [
+                                [
+                                    {
+                                        "text": "Lokatsiya qo'shish",
+                                        "request_location": True,
+                                    }
+                                ],
+                                [
+                                    {
+                                        "text": "Telefon raqamni ulashish",
+                                        "request_contact": True,
+                                    }
+                                ],
+                            ],
+                            "resize_keyboard": True,
+                        }
+                    ),
+                },
+            )
+
+            res = telegram.send(
+                method,
+                data=data,
+            )
+
+            if (
+                not res.get("ok")
+                and res.get("description")
+                == "Bad Request: wrong file identifier/HTTP URL specified"
+            ):
+                telegram.send(
+                    "sendMessage",
+                    data={
+                        "chat_id": instance.user.telegram_id,
+                        "text": "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊",
+                        "reply_markup": reply_markup,
+                    },
+                )
+
         if instance.user.orders.filter(status=Order.CANCELED).count() == 3:
             try:
                 instance.user.is_blocked = True
