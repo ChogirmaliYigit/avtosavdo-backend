@@ -2,7 +2,7 @@ import requests
 from django.conf import settings
 from django.db import IntegrityError
 from drf_yasg import openapi, utils
-from rest_framework import generics, response, status, views
+from rest_framework import generics, permissions, response, status, views
 from shop.models import Category, Order, Product
 from shop.serializers import (
     CategoryListSerializer,
@@ -81,13 +81,12 @@ class OrderListCreateView(generics.ListCreateAPIView):
 
 class OrderUpdateView(generics.UpdateAPIView):
     serializer_class = OrderDetailSerializer
+    permission_classes = [
+        permissions.AllowAny,
+    ]
 
     def get_queryset(self):
-        return (
-            Order.objects.filter(user=self.request.user)
-            if not self.request.user.is_anonymous
-            else []
-        )
+        return Order.objects.all(deleted_at__isnull=True)
 
 
 class IntegrateView(views.APIView):
