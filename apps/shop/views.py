@@ -84,6 +84,7 @@ class OrderUpdateView(generics.UpdateAPIView):
     permission_classes = [
         permissions.AllowAny,
     ]
+    authentication_classes = []
 
     def get_queryset(self):
         return Order.objects.all(deleted_at__isnull=True)

@@ -82,6 +82,7 @@ class UpdateUserDataView(APIView):
     permission_classes = [
         permissions.AllowAny,
     ]
+    authentication_classes = []
 
     def put(self, request, telegram_id: int):
         user = User.objects.filter(telegram_id=telegram_id).first()
