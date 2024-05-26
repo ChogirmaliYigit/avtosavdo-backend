@@ -192,7 +192,6 @@ def order_pre_save_signal(sender, instance, **kwargs):
             try:
                 instance.user.is_blocked = True
                 instance.user.save()
-                instance.save()
                 if instance.user.telegram_id:
                     telegram.send(
                         "sendMessage",
