@@ -129,3 +129,9 @@ class UpdateUserDataView(APIView):
             return Response({}, status.HTTP_200_OK)
         else:
             return Response({}, status.HTTP_404_NOT_FOUND)
+
+
+class AllUsersListView(APIView):
+    def get(self, request):
+        serializer = UserSerializer(User.objects.all(), many=True)
+        return Response(serializer.data, status.HTTP_200_OK)
