@@ -1,7 +1,5 @@
 import json
-from json import JSONDecodeError
 
-import requests
 from core.telegram_client import TelegramClient
 from django.conf import settings
 from rest_framework import serializers
@@ -65,93 +63,79 @@ class OrderListSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         orders = self.context.get("orders")
 
-        total_price = 0
-        product_ids = {item["product"] for item in orders}
+        # Calculate total price and prepare order products
+        product_ids = [item["product"] for item in orders]
         products = Product.objects.filter(id__in=product_ids)
         price_mapping = {product.id: product.real_price for product in products}
 
         order_product_objects = []
+        total_price = 0
         for item in orders:
             product_id = item["product"]
             count = item["count"]
 
-            if product_id in price_mapping:
-                total_price += price_mapping[product_id] * count
-            else:
-                print(f"Price for product {product_id} not found.")
-
-            order_product_objects.append(
-                OrderProduct(
-                    product_id=product_id,
-                    count=count,
-                    order=None,
+            price = price_mapping.get(product_id)
+            if price is not None:
+                total_price += price * count
+                order_product_objects.append(
+                    OrderProduct(product_id=product_id, count=count)
                 )
-            )
 
-        if validated_data.get("full_name"):
-            request.user.full_name = validated_data.get("full_name")
+        # Update user full name if provided
+        full_name = validated_data.get("full_name")
+        if full_name:
+            request.user.full_name = full_name
             request.user.save()
 
-        data = {
+        # Retrieve or create address
+        address_data = {
             "user": request.user,
             "address": validated_data.get("address"),
         }
-        address = Address.objects.filter(**data).first()
-        if not address:
-            address = Address.objects.create(**data)
+        address, created = Address.objects.get_or_create(**address_data)
 
-        order_data = {
-            "user": request.user,
-            "total_price": total_price,
-            "status": Order.IN_PROCESSING,
-            "paid": False,
-            "delivery_type": validated_data.get("delivery_type", Order.DELIVERY),
-            "secondary_phone_number": validated_data.get("secondary_phone_number"),
-            "address": address,
-        }
-
-        order = Order.objects.create(**order_data)
-
-        product_names = []
-
-        # Set the order attribute for each OrderProduct object
-        for order_product in order_product_objects:
-            order_product.order = order
-            product_names.append(
-                f"{order_product.product.title} ({order_product.count} ta)"
-            )
-
-        # Bulk creates the OrderProduct objects
-        order_products = OrderProduct.objects.bulk_create(order_product_objects)
-
-        telegram = TelegramClient(settings.BOT_TOKEN)
-        telegram.send(
-            "sendMessage",
-            data={
-                "chat_id": request.user.telegram_id,
-                "text": f"№{order.pk} raqamli buyurtmangiz qabul qilindi🥳\n\nTez orada siz bilan bog'lanamiz😊",
-            },
+        # Create order
+        order = Order.objects.create(
+            user=request.user,
+            total_price=total_price,
+            status=Order.IN_PROCESSING,
+            paid=False,
+            delivery_type=validated_data.get("delivery_type", Order.DELIVERY),
+            secondary_phone_number=validated_data.get("secondary_phone_number"),
+            address=address,
         )
 
+        # Associate order with OrderProduct objects and bulk create
+        for order_product in order_product_objects:
+            order_product.order = order
+        OrderProduct.objects.bulk_create(order_product_objects)
+
+        product_names = [
+            f"{products.get(id=op.product_id).title} ({op.count} ta)"
+            for op in order_product_objects
+        ]
+
+        telegram = TelegramClient(settings.BOT_TOKEN)
         order_statuses = {
-            "in_processing": "Jarayonda",
-            "confirmed": "Tasdiqlangan",
-            "performing": "Amalga oshirilyabdi",
-            "success": "Yetkazib berilgan",
-            "canceled": "Bekor qilingan",
+            Order.IN_PROCESSING: "Jarayonda",
+            Order.CONFIRMED: "Tasdiqlangan",
+            Order.PERFORMING: "Amalga oshirilyabdi",
+            Order.SUCCESS: "Yetkazib berilgan",
+            Order.CANCELED: "Bekor qilingan",
         }
 
         payment_status = "To'langan✅" if order.paid else "To'lanmagan❌"
-
         delivery_type = (
-            "Yetkazib berish" if order.delivery_type == "delivery" else "Olib ketish"
+            "Yetkazib berish"
+            if order.delivery_type == Order.DELIVERY
+            else "Olib ketish"
         )
 
         address_text = f"<b>{order.address.address}</b>"
         if order.address.latitude and order.address.longitude:
             address_text = (
-                f"<a href='https://www.google.com/maps/@"
-                f"{order.address.latitude},{order.address.longitude},18.5z?entry=ttu'>{address_text}</a>"
+                f"<a href='https://www.google.com/maps/@{order.address.latitude},"
+                f"{order.address.longitude},18.5z?entry=ttu'>{address_text}</a>"
             )
 
         statuses = {
@@ -161,60 +145,41 @@ class OrderListSerializer(serializers.ModelSerializer):
                 Order.SUCCESS,
                 Order.CANCELED,
             ],
-            Order.CONFIRMED: [
-                Order.PERFORMING,
-                Order.SUCCESS,
-                Order.CANCELED,
-            ],
-            Order.PERFORMING: [
-                Order.SUCCESS,
-                Order.CANCELED,
-            ],
+            Order.CONFIRMED: [Order.PERFORMING, Order.SUCCESS, Order.CANCELED],
+            Order.PERFORMING: [Order.SUCCESS, Order.CANCELED],
         }
 
-        keyboard = []
-        for status in statuses.get(order.status, {}):
-            keyboard.append(
-                [
-                    {
-                        "text": order_statuses.get(status),
-                        "callback_data": f"{status}_{order.pk}",
-                    }
-                ]
-            )
+        keyboard = [
+            [{"text": order_statuses[status], "callback_data": f"{status}_{order.pk}"}]
+            for status in statuses.get(order.status, [])
+        ]
 
         if not order.paid:
             keyboard.append(
-                [
-                    {
-                        "text": "To'langan✅",
-                        "callback_data": f"paid_{order.pk}",
-                    }
-                ]
+                [{"text": "To'langan✅", "callback_data": f"paid_{order.pk}"}]
             )
 
         response = telegram.send(
             "sendMessage",
             data={
                 "chat_id": settings.GROUP_ID,
-                "text": f"<b>№{order.pk} raqamli buyurtma</b>\n\n"
-                f"📱Telefon raqam: <b>{request.user.phone_number}</b>\n"
-                f"📱Qo'shimcha telefon raqam: <b>{order.secondary_phone_number or 'Mavjud emas'}</b>\n"
-                f"📦Holati: {order_statuses.get(order.status)}\n"
-                f"💸To'lov holati: {payment_status}\n"
-                f"🚚Yetkazib berish turi: <b>{delivery_type}</b>\n"
-                f"📍Yetkazib berish manzili: {address_text}\n"
-                f"📋Mahsulotlar: <b>{', '.join(product_names)}</b>\n\n"
-                f"<b>💸Umumiy narx: {order.total_price} so'm</b>",
+                "text": (
+                    f"<b>№{order.pk} raqamli buyurtma</b>\n\n"
+                    f"📱Telefon raqam: <b>{request.user.phone_number}</b>\n"
+                    f"📱Qo'shimcha telefon raqam: <b>{order.secondary_phone_number or 'Mavjud emas'}</b>\n"
+                    f"📦Holati: {order_statuses.get(order.status)}\n"
+                    f"💸To'lov holati: {payment_status}\n"
+                    f"🚚Yetkazib berish turi: <b>{delivery_type}</b>\n"
+                    f"📍Yetkazib berish manzili: {address_text}\n"
+                    f"📋Mahsulotlar: <b>{', '.join(product_names)}</b>\n\n"
+                    f"<b>💸Umumiy narx: {order.total_price} so'm</b>"
+                ),
                 "parse_mode": "html",
                 "disable_web_page_preview": True,
-                "reply_markup": json.dumps(
-                    {
-                        "inline_keyboard": keyboard,
-                    }
-                ),
+                "reply_markup": json.dumps({"inline_keyboard": keyboard}),
             },
         )
+
         result = response.get("result", {})
         try:
             ChatMessage.objects.create(
@@ -224,41 +189,8 @@ class OrderListSerializer(serializers.ModelSerializer):
             )
         except Exception as err:
             print(
-                "Error while creating ChatMessage object:", err.__class__.__name__, err
+                f"Error while creating ChatMessage object: {err.__class__.__name__} {err}"
             )
-
-        r = requests.post(
-            "https://web.alipos.uz/externalOrder",
-            headers={"access-token": settings.ALIPOS_ACCESS_TOKEN},
-            data={
-                "id": order.pk,
-                "restaurantId": "8A755C69-4459-AC5C-FFDF59751E21",
-                "orderType": "deliver",
-                "comment": "Комментарий  к заказу",
-                "deliveryInfo": {
-                    "clientName": order.user.full_name,
-                    "phoneNumber": order.user.phone_number,
-                    "deliveryAddress": {
-                        "full": order.address.address,
-                        "latitude": order.address.latitude,
-                        "longitude": order.address.longitude,
-                    },
-                },
-                "items": [
-                    {
-                        "id": order_product.product.external_id,
-                        "quantity": order_product.count,
-                        "price": order_product.product.real_price * order_product.count,
-                    }
-                    for order_product in order_products
-                ],
-            },
-        )
-
-        try:
-            print("ALIPOS response:", r.json())
-        except JSONDecodeError:
-            pass
 
         return order
 
