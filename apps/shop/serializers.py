@@ -1,3 +1,4 @@
+import decimal
 import json
 
 from core.telegram_client import TelegramClient
@@ -67,9 +68,19 @@ class OrderListSerializer(serializers.ModelSerializer):
 
         product_ids = [item["product"] for item in orders]
         products = Product.objects.filter(id__in=product_ids).values(
-            "id", "real_price", "title"
+            "id", "price", "title", "discount_percentage"
         )
-        price_mapping = {product["id"]: product["real_price"] for product in products}
+        price_mapping = {
+            product["id"]: round(
+                product["price"]
+                - (
+                    product["price"]
+                    * decimal.Decimal(product["discount_percentage"] / 100)
+                ),
+                2,
+            )
+            for product in products
+        }
         title_mapping = {product["id"]: product["title"] for product in products}
 
         order_product_objects = []
