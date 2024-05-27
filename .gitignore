@@ -162,4 +162,3 @@ cython_debug/
 staticfiles
 .vscode/
 media/
-*.sql
