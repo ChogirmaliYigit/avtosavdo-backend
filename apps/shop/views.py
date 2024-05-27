@@ -40,6 +40,8 @@ class OrderListCreateView(generics.ListCreateAPIView):
     serializer_class = OrderListSerializer
 
     def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return Order.objects.all()
         return Order.objects.filter(user=self.request.user)
 
     @utils.swagger_auto_schema(

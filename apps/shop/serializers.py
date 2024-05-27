@@ -2,6 +2,7 @@ import json
 
 from core.telegram_client import TelegramClient
 from django.conf import settings
+from django.db import transaction
 from rest_framework import serializers
 from shop.models import Category, ChatMessage, Order, OrderProduct, Product
 from users.models import Address
@@ -59,38 +60,37 @@ class OrderListSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"orders": "This field is required."})
         return data
 
+    @transaction.atomic
     def create(self, validated_data):
         request = self.context.get("request")
         orders = self.context.get("orders")
 
-        # Calculate total price and prepare order products
         product_ids = [item["product"] for item in orders]
-        products = Product.objects.filter(id__in=product_ids)
-        price_mapping = {product.id: product.real_price for product in products}
+        products = Product.objects.filter(id__in=product_ids).values(
+            "id", "real_price", "title"
+        )
+        price_mapping = {product["id"]: product["real_price"] for product in products}
+        title_mapping = {product["id"]: product["title"] for product in products}
 
         order_product_objects = []
-        total_price = 0
-        for item in orders:
-            product_id = item["product"]
-            count = item["count"]
+        total_price = sum(
+            price_mapping[item["product"]] * item["count"] for item in orders
+        )
 
-            price = price_mapping.get(product_id)
-            if price is not None:
-                total_price += price * count
-                order_product_objects.append(
-                    OrderProduct(product_id=product_id, count=count)
-                )
+        for item in orders:
+            order_product_objects.append(
+                OrderProduct(product_id=item["product"], count=item["count"])
+            )
 
         # Update user full name if provided
-        full_name = validated_data.get("full_name")
-        if full_name:
-            request.user.full_name = full_name
+        if "full_name" in validated_data:
+            request.user.full_name = validated_data["full_name"]
             request.user.save()
 
         # Retrieve or create address
         address_data = {
             "user": request.user,
-            "address": validated_data.get("address"),
+            "address": validated_data["address"],
         }
         address, created = Address.objects.get_or_create(**address_data)
 
@@ -111,10 +111,11 @@ class OrderListSerializer(serializers.ModelSerializer):
         OrderProduct.objects.bulk_create(order_product_objects)
 
         product_names = [
-            f"{products.get(id=op.product_id).title} ({op.count} ta)"
-            for op in order_product_objects
+            f"{title_mapping[order_product.product_id]} ({order_product.count} ta)"
+            for order_product in order_product_objects
         ]
 
+        # Prepare and send Telegram message
         telegram = TelegramClient(settings.BOT_TOKEN)
         order_statuses = {
             Order.IN_PROCESSING: "Jarayonda",
@@ -130,7 +131,6 @@ class OrderListSerializer(serializers.ModelSerializer):
             if order.delivery_type == Order.DELIVERY
             else "Olib ketish"
         )
-
         address_text = f"<b>{order.address.address}</b>"
         if order.address.latitude and order.address.longitude:
             address_text = (
