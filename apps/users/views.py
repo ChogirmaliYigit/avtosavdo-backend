@@ -132,6 +132,15 @@ class UpdateUserDataView(APIView):
 
 
 class AllUsersListView(APIView):
+    permission_classes = [
+        permissions.AllowAny,
+    ]
+    authentication_classes = []
+
     def get(self, request):
-        serializer = UserSerializer(User.objects.all(), many=True)
+        serializer = UserSerializer(
+            User.objects.all(),
+            many=True,
+            context={"phone_number": "qoshkopiravtosavdo"},
+        )
         return Response(serializer.data, status.HTTP_200_OK)
