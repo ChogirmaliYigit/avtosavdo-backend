@@ -220,8 +220,15 @@ class OrderListSerializer(serializers.ModelSerializer):
 
 class OrderDetailSerializer(serializers.ModelSerializer):
     phone_number = serializers.SerializerMethodField()
+    secondary_phone_number = serializers.CharField(read_only=True)
+    status = serializers.CharField(required=False)
+    paid = serializers.BooleanField(required=False)
+    delivery_type = serializers.CharField(read_only=True)
     address = serializers.SerializerMethodField()
     products = serializers.SerializerMethodField()
+    total_price = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
 
     def get_phone_number(self, order):
         return order.user.phone_number
@@ -238,6 +245,16 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             {"title": product.title, "count": product.count}
             for product in order.products.all()
         ]
+
+    def update(self, instance, validated_data):
+        status = validated_data.get("status")
+        paid = validated_data.get("paid")
+        if status:
+            instance.status = status
+        if paid:
+            instance.paid = paid
+        instance.save()
+        return instance
 
     class Meta:
         model = Order
