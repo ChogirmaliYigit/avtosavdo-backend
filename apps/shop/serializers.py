@@ -242,16 +242,16 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
     def get_products(self, order):
         return [
-            {"title": product.title, "count": product.count}
-            for product in order.products.all()
+            {"title": order_product.product.title, "count": order_product.count}
+            for order_product in order.products.all()
         ]
 
     def update(self, instance, validated_data):
         status = validated_data.get("status")
         paid = validated_data.get("paid")
-        if status:
+        if status is not None:
             instance.status = status
-        if paid:
+        if paid is not None:
             instance.paid = paid
         instance.save()
         return instance
