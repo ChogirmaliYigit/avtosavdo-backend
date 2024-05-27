@@ -1,9 +1,6 @@
 import decimal
-import json
 
 from core.models import BaseModel
-from core.telegram_client import TelegramClient
-from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models.signals import pre_save
@@ -160,95 +157,11 @@ class ChatMessage(BaseModel):
 @receiver(pre_save, sender=Order)
 def order_pre_save_signal(sender, instance, **kwargs):
     try:
-        telegram = TelegramClient(settings.BOT_TOKEN)
-
-        order_statuses = {
-            Order.IN_PROCESSING: "Jarayonda",
-            Order.CONFIRMED: "Tasdiqlangan",
-            Order.PERFORMING: "Amalga oshirilyabdi",
-            Order.SUCCESS: "Yetkazib berilgan",
-            Order.CANCELED: "Bekor qilingan",
-        }
-
-        texts = []
-        old_instance = sender.objects.filter(pk=instance.pk).first()
-        if old_instance:
-            if old_instance.status != instance.status:
-                texts.append(order_statuses.get(instance.status))
-            if old_instance.paid != instance.paid and instance.paid is True:
-                texts.append("To'landi✅")
-
-        if instance.user.telegram_id:
-            for text in texts:
-                telegram.send(
-                    "sendMessage",
-                    data={
-                        "chat_id": instance.user.telegram_id,
-                        "text": f"Sizning №{instance.pk} raqamli buyurtmangiz {text}",
-                    },
-                )
-
-            reply_markup = json.dumps(
-                {
-                    "inline_keyboard": [
-                        [
-                            {
-                                "text": "Menu",
-                                "web_app": {
-                                    "url": settings.WEB_APP_URL,
-                                },
-                            }
-                        ]
-                    ]
-                }
-            )
-
-            data = {
-                "chat_id": instance.user.telegram_id,
-                "reply_markup": reply_markup,
-            }
-            if hasattr(settings, "IMAGE_FILE_ID"):
-                data["photo"] = settings.IMAGE_FILE_ID
-                data[
-                    "caption"
-                ] = "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊"
-                method = "sendPhoto"
-            else:
-                method = "sendMessage"
-                data[
-                    "text"
-                ] = "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊"
-
-            res = telegram.send(
-                method,
-                data=data,
-            )
-
-            if (
-                not res.get("ok")
-                and res.get("description")
-                == "Bad Request: wrong file identifier/HTTP URL specified"
-            ):
-                telegram.send(
-                    "sendMessage",
-                    data={
-                        "chat_id": instance.user.telegram_id,
-                        "text": "Mahsulotlarimiz buyurtma berishingizni kutib turishibdi😊",
-                        "reply_markup": reply_markup,
-                    },
-                )
-
         if instance.user.orders.filter(status=Order.CANCELED).count() == 3:
             try:
                 instance.user.is_blocked = True
                 instance.user.save()
             except Exception as err:
-                telegram.send(
-                    "sendMessage",
-                    data={
-                        "chat_id": 5509036572,
-                        "text": f"Error while making user block: {err.__class__.__name__}: {err}",
-                    },
-                )
+                print(f"Error while making user block: {err.__class__.__name__}: {err}")
     except Exception as error:
         print(error)
