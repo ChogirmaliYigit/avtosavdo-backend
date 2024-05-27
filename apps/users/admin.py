@@ -1,3 +1,4 @@
+from core.actions import download_db
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 from users.models import User
@@ -5,6 +6,7 @@ from users.models import User
 
 @admin.register(User)
 class UserAdmin(ModelAdmin):
+    actions = [download_db]
     list_display = (
         "phone_number",
         "full_name",
