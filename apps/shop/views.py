@@ -89,7 +89,7 @@ class OrderUpdateView(generics.UpdateAPIView):
     authentication_classes = []
 
     def get_queryset(self):
-        return Order.objects.all(deleted_at__isnull=True)
+        return Order.objects.all()
 
 
 class IntegrateView(views.APIView):
