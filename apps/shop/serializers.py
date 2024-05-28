@@ -103,7 +103,9 @@ class OrderListSerializer(serializers.ModelSerializer):
             "user": request.user,
             "address": validated_data["address"],
         }
-        address, created = Address.objects.get_or_create(**address_data)
+        address = Address.objects.filter(**address_data).last()
+        if not address:
+            address = Address.objects.create(**address_data)
 
         # Create order
         order = Order.objects.create(
