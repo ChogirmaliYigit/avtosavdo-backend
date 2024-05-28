@@ -1,7 +1,7 @@
 from core.actions import download_db
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from users.models import User
+from users.models import User, Address
 
 
 @admin.register(User)
@@ -33,3 +33,9 @@ class UserAdmin(ModelAdmin):
 
     display_is_blocked.boolean = True
     display_is_blocked.short_description = "Блокланганми"
+
+
+@admin.register(Address)
+class AddressAdmin(ModelAdmin):
+    list_display = ("user", "address", "latitude", "longitude",)
+    fields = list_display
