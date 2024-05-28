@@ -139,7 +139,7 @@ class AllUsersListView(APIView):
 
     def get(self, request):
         serializer = UserSerializer(
-            User.objects.all(),
+            User.objects.filter(telegram_id__isnull=False),
             many=True,
             context={"phone_number": "qoshkopiravtosavdo"},
         )
